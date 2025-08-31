@@ -158,5 +158,4 @@ export {
   getLoanDetails,
   getPreviousLoans,
   setGlobalInterestRate,
-  getCurrentInterestRate,
 };

@@ -7,8 +7,6 @@ import {
 
 const router = express.Router();
 
-// Public routes (no auth needed for FAQs)
-router.get("/", getFAQs);
 router.get("/categories", getFAQCategories);
 
 export default router;

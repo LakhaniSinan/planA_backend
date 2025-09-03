@@ -4,22 +4,41 @@ import {
   getLoanDetails,
   getPreviousLoans,
   setGlobalInterestRate,
+  updateLoanAvailableAmount,
+  getLoanStatistics,
 } from "../../controller/admin/adminLoanController.js";
 import verifyAdmin from "../../middleware/admin/auth.js";
 
 const router = express.Router();
 
-// Admin fetches all active loans
-router.get("/fetch", verifyAdmin, getActiveLoans);
+// =============================================
+// Loan Overview & Statistics
+// =============================================
 
-// Admin fetches active loan for a specific user
-router.get("/fetch/:userId", verifyAdmin, getLoanDetails);
+// Get loan statistics dashboard
+router.get("/statistics", verifyAdmin, getLoanStatistics);
 
-// Admin fetches previous/completed loans for a user
-router.get("/fetch/:userId/history", verifyAdmin, getPreviousLoans);
+// Get all active loans with pagination and search (includes availableAmount)
+router.get("/active", verifyAdmin, getActiveLoans);
 
-// Admin sets global interest rate for new loans
-router.put("/update-interest", verifyAdmin, setGlobalInterestRate);
+// =============================================
+// Individual Loan Management
+// =============================================
 
+// Get specific user's active loan details
+router.get("/user/:userId/active", verifyAdmin, getLoanDetails);
+
+// Get specific user's previous/completed loans
+router.get("/user/:userId/previous", verifyAdmin, getPreviousLoans);
+
+// Update loan's available amount (new feature)
+router.put("/update-available-amount/:loanId", verifyAdmin, updateLoanAvailableAmount);
+
+// =============================================
+// Global Interest Rate Management
+// =============================================
+
+// Set global default interest rate
+router.post("/set-global-interest-rate", verifyAdmin, setGlobalInterestRate);
 
 export default router;

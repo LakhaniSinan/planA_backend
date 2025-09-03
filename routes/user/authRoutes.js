@@ -3,6 +3,9 @@ const router = express.Router();
 
 import {
   registerUser,
+  verifyOtp,
+  completeProfile,
+  resendOtp,
   loginUser,
   forgotPassword,
   resetPassword,
@@ -15,15 +18,28 @@ import {
 
 import { verifyUser } from "../../middleware/user/auth.js";
 
-// Public routes
-router.post("/register", registerUser);
+// =============================================
+// NEW OTP-based Registration Flow (Public routes)
+// =============================================
+router.post("/register", registerUser); // Step 1: Email only
+router.post("/verify-otp", verifyOtp); // Step 2: Verify OTP
+router.post("/resend-otp", resendOtp); // Resend OTP if needed
+
+// Profile completion (requires token from OTP verification)
+router.post("/complete-profile", verifyUser, completeProfile); // Step 3: Complete profile
+
+// =============================================
+// Existing routes (Public)
+// =============================================
 router.post("/login", loginUser);
 router.get("/get", getUsers);
 router.get("/get/:id", getUsersById);
 router.post("/forgot", forgotPassword);
 router.put("/reset-password", resetPassword);
 
-// Protected routes
+// =============================================
+// Protected routes (require full authentication + profile completion)
+// =============================================
 router.put("/update/:id", verifyUser, updateUser);
 router.put("/change-password/:id", verifyUser, changePassword);
 router.delete("/delete/:id", verifyUser, deleteUser);

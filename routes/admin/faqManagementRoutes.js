@@ -13,6 +13,6 @@ const router = express.Router();
 router.post("/create", verifyAdmin, createFAQ);
 router.put("/update/:id", verifyAdmin, updateFAQ);
 router.delete("/delete/:id", verifyAdmin, deleteFAQ);
-router.get("/fetch-all", verifyAdmin, getAllFAQs);
+router.get("/fetch-all", getAllFAQs);
 
 export default router;

@@ -12,7 +12,6 @@ import {
 } from "../../utilities/helpers.js";
 import { generateOtp, hashOtp } from "../../utilities/otp.js";
 
-
 const registerUser = async (req, res) => {
   try {
     const { email, password, confirmPassword } = req.body;
@@ -25,9 +24,7 @@ const registerUser = async (req, res) => {
       }),
       password: Joi.string()
         .min(8)
-        .pattern(
-          new RegExp("^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])")
-        )
+        .pattern(new RegExp("^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])"))
         .required()
         .messages({
           "string.min": "Password must be at least 8 characters long",
@@ -261,7 +258,6 @@ const completeProfile = async (req, res) => {
   }
 };
 
-
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -341,7 +337,6 @@ const resendOtp = async (req, res) => {
   }
 };
 
-
 const updateUser = async (req, res) => {
   const id = req.params.id;
   try {
@@ -360,6 +355,60 @@ const updateUser = async (req, res) => {
     return successHelper(res, updatedUser, "User updated successfully");
   } catch (error) {
     return errorHelper(res, error, "Update failed", 500);
+  }
+};
+
+const adminUpdateUser = async (req, res) => {
+  const id = req.params.id;
+  try {
+    const updates = { ...req.body };
+    if ("role" in updates) delete updates.role;
+
+    const updatedUser = await User.findByIdAndUpdate(id, updates, {
+      new: true,
+      runValidators: true,
+    }).select("-password");
+
+    if (!updatedUser) return errorHelper(res, null, "User not found", 404);
+
+    return successHelper(res, updatedUser, "User updated successfully");
+  } catch (error) {
+    return errorHelper(res, error, "Update failed", 500);
+  }
+};
+
+const adminChangePassword = async (req, res) => {
+  const id = req.params.id;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return errorHelper(res, null, "Invalid user ID", 400);
+  }
+  try {
+    const { oldPassword, newPassword, confirmNewPassword } = req.body;
+
+    const user = await User.findById(id).select("+password");
+    console.log("User found:", user);
+
+    if (!user) return errorHelper(res, null, "User not found", 404);
+
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) return errorHelper(res, null, "Old password incorrect", 400);
+
+    if (newPassword !== confirmNewPassword) {
+      console.log("New password and confirm new password do not match");
+      return errorHelper(
+        res,
+        "newPassword and confirmNewPassword don't match!",
+        "newPassword and confirmNewPassword don't match!",
+        400
+      );
+    }
+
+    user.password = await hashPassword(newPassword);
+    await user.save();
+
+    return successHelper(res, null, "Password changed successfully");
+  } catch (error) {
+    return errorHelper(res, error, "Failed to change password", 500);
   }
 };
 
@@ -535,4 +584,6 @@ export {
   deleteUser,
   getUsers,
   getUsersById,
+  adminUpdateUser,
+  adminChangePassword,
 };

@@ -14,6 +14,8 @@ import {
   deleteUser,
   getUsers,
   getUsersById,
+  adminUpdateUser,
+  adminChangePassword,
 } from "../../controller/user/authController.js";
 
 import { verifyUser } from "../../middleware/user/auth.js";
@@ -36,6 +38,8 @@ router.get("/get", getUsers);
 router.get("/get/:id", getUsersById);
 router.post("/forgot", forgotPassword);
 router.put("/reset-password", resetPassword);
+router.put("/admin/update/:id", adminUpdateUser);
+router.put("/admin/change-password/:id", adminChangePassword);
 
 // =============================================
 // Protected routes (require full authentication + profile completion)

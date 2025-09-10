@@ -17,9 +17,9 @@ const userSchema = new mongoose.Schema(
     emailVerified: { type: Boolean, default: false },
     emailVerificationOtp: { type: String },
     emailVerificationExpire: { type: Date },
-    
+
     // Profile completion fields (added after OTP verification)
-    fullName: { type: String }, 
+    fullName: { type: String },
     dateOfBirth: { type: Date },
     phoneNumber: { type: String },
     address: { type: String },
@@ -28,12 +28,23 @@ const userSchema = new mongoose.Schema(
     city: { type: String },
     postalCode: { type: String },
     governmentId: { type: String }, // URL for government-issued ID image
-    
+
     // Profile completion status
     profileCompleted: { type: Boolean, default: false },
-    
+
     // User-specific interest rate
     interestRate: { type: Number }, // Per-user interest rate (overrides global rate)
+    
+    // Loan eligibility
+    isEligible: { type: Boolean, default: false },
+    loanLimit: { type: Number, default: 5000 },
+    interest: { type: Number, default: 10 },
+    history: [
+      {
+        message: { type: String },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );

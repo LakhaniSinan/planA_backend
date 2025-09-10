@@ -16,7 +16,6 @@ router.get("/current-interest", getCurrentInterestRate);
 
 router.get("/eligibility", verifyUser, getLoanEligibility);
 
-
 router.get("/fetch/current-loan", verifyUser, getMyCurrentLoan);
 
 router.post("/take", verifyUser, takeLoan);

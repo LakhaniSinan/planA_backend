@@ -1,6 +1,7 @@
 // app.js - ADD ADMIN IMPORTS
 import express from "express";
 import cors from "cors";
+import morgan from "morgan";
 import userAuthRoutes from "./routes/user/authRoutes.js";
 import adminAuthRoutes from "./routes/admin/authRoutes.js";
 import userLoanRoutes from "./routes/user/userLoanRoutes.js";
@@ -21,6 +22,12 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+console;
+
+if (process.env.NODE_ENV === "development") {
+  app.use(morgan("dev"));
+}
 
 // USER ROUTES
 app.use("/api/user", userAuthRoutes);

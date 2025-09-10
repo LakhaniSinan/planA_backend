@@ -13,6 +13,7 @@ const calculateTotalWithInterest = (amount, interestRate) => {
 // ============================
 // GET ALL ACTIVE LOANS (Updated with availableAmount)
 // ============================
+
 const getActiveLoans = async (req, res) => {
   try {
     const { page = 1, limit = 20, search = "" } = req.query;
@@ -261,6 +262,7 @@ const setGlobalInterestRate = async (req, res) => {
     }
 
     const interest = await Interest.create({ rate: parseFloat(rate) });
+    
     return successHelper(res, interest, "Global interest rate updated successfully");
   } catch (error) {
     return errorHelper(res, error, "Failed to update interest rate");

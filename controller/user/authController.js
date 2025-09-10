@@ -358,25 +358,6 @@ const updateUser = async (req, res) => {
   }
 };
 
-const adminUpdateUser = async (req, res) => {
-  const id = req.params.id;
-  try {
-    const updates = { ...req.body };
-    if ("role" in updates) delete updates.role;
-
-    const updatedUser = await User.findByIdAndUpdate(id, updates, {
-      new: true,
-      runValidators: true,
-    }).select("-password");
-
-    if (!updatedUser) return errorHelper(res, null, "User not found", 404);
-
-    return successHelper(res, updatedUser, "User updated successfully");
-  } catch (error) {
-    return errorHelper(res, error, "Update failed", 500);
-  }
-};
-
 const adminChangePassword = async (req, res) => {
   const id = req.params.id;
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -571,6 +552,66 @@ const deleteUser = async (req, res) => {
   }
 };
 
+const updateUserByAdmin = async (req, res) => {
+  const id = req.params.id;
+  try {
+    const user = await User.findById(id);
+    if (!user) return errorHelper(res, null, "User not found", 404);
+
+    if (req.body.loanLimit && user.loanLimit !== req.body.loanLimit) {
+      user.history.push({
+        message: `Loan limit updated to ${req.body.loanLimit}`,
+        createdAt: Date.now(),
+      });
+    }
+
+    if (req.body.interest && user.interest !== req.body.interest) {
+      user.history.push({
+        message: `Interest rate limit updated to ${req.body.interest}`,
+        createdAt: Date.now(),
+      });
+    }
+
+    const updates = { ...req.body, history: user.history };
+    const updatedUser = await User.findByIdAndUpdate(id, updates, {
+      new: true,
+    }).select("-password");
+    successHelper(res, updatedUser, "User updated successfully");
+  } catch (error) {
+    return errorHelper(res, error, "Update failed", 500);
+  }
+};
+
+const adminResetPassword = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { newPassword, confirmPassword } = req.body;
+
+    if (!newPassword || !confirmPassword) {
+      return errorHelper(
+        res,
+        null,
+        "New password and confirm password are required",
+        400
+      );
+    }
+
+    if (newPassword !== confirmPassword) {
+      return errorHelper(res, null, "Passwords do not match", 400);
+    }
+
+    const user = await User.findById(id);
+    if (!user) return errorHelper(res, null, "User not found", 404);
+
+    user.password = await hashPassword(newPassword);
+    await user.save();
+
+    return successHelper(res, null, "Password reset successfully", 200);
+  } catch (error) {
+    return errorHelper(res, error, "Reset password failed", 500);
+  }
+};
+
 export {
   registerUser,
   verifyOtp,
@@ -584,6 +625,7 @@ export {
   deleteUser,
   getUsers,
   getUsersById,
-  adminUpdateUser,
+  updateUserByAdmin,
   adminChangePassword,
+  adminResetPassword,
 };

@@ -39,10 +39,26 @@ const signToken = (data) => {
 };
 
 
+function calculateDueDate(startDate, i, tenureType) {
+  const date = new Date(startDate);
+
+  if (tenureType === "months") {
+    date.setMonth(date.getMonth() + i); 
+  } else if (tenureType === "years") {
+    date.setFullYear(date.getFullYear() + i); 
+  } else if (tenureType === "days") {
+    date.setDate(date.getDate() + i); 
+  }
+
+  return date;
+}
+
+
 export {
   successHelper,
   errorHelper,
   generateToken,
   hashPassword,
-  signToken
+  signToken,
+  calculateDueDate
 };

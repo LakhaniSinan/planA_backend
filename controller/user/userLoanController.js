@@ -257,7 +257,7 @@ const getCurrentInterestRate = async (req, res) => {
 const getLoanEligibility = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
-    
+
     // Check if user has completed profile
     if (!user.profileCompleted || !user.emailVerified) {
       return successHelper(res, {

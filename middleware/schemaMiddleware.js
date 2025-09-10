@@ -30,5 +30,5 @@ const validationOptions = {
     }
   };
   
-  module.exports = { schemaValidator };
+  export { schemaValidator };
   

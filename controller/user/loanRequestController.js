@@ -4,8 +4,12 @@ import UserModel from "../../model/user/Model.js";
 import InstallmentModel from "../../model/loanManagement/repaymentSlip.js";
 import catchAsync from "../../utilities/catchAsync.js";
 import { calculateDueDate, successHelper } from "../../utilities/helpers.js";
-import { loanRequestSchema } from "../../utilities/validation.js";
+import {
+  loanRequestSchema,
+  updateLoanRequestSchema,
+} from "../../utilities/validation.js";
 import { schemaValidator } from "../../middleware/schemaMiddleware.js";
+import mongoose from "mongoose";  
 
 const requestLoan = catchAsync(async (req, res, next) => {
   const [error, validatedData] = schemaValidator(req.body, loanRequestSchema);
@@ -13,6 +17,16 @@ const requestLoan = catchAsync(async (req, res, next) => {
 
   const user = await UserModel.findById(validatedData.userId);
   if (!user) return next(new AppError("User not found", 404));
+
+  const existingLoanRequest = await LoanRequestModel.findOne({
+    userId: user._id,
+    status: { $in: ["pending", "approved"] },
+  });
+
+  if (existingLoanRequest)
+    return next(
+      new AppError("User already has a pending or approved loan request", 400)
+    );
 
   // if (user.isEligible === false) return new AppError("User is not eligible for loan", 400);
 
@@ -42,7 +56,7 @@ const requestLoan = catchAsync(async (req, res, next) => {
     installment.push({
       loanId: loanRequest._id,
       userId: user._id,
-      amount: validatedData.amount / validatedData.tenureValue,
+      amount: loanRequest.totalPayableAmount / validatedData.tenureValue,
       dueDate: calculateDueDate(new Date(), i, validatedData.tenureType),
     });
   }
@@ -103,4 +117,48 @@ const getAllLoanRequest = catchAsync(async (req, res, next) => {
   return successHelper(res, finalData, "Loan requests fetched successfully");
 });
 
-export { requestLoan, getAllLoanRequest };
+const updateLoanRequest = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  const [error, validatedData] = schemaValidator(
+    req.body,
+    updateLoanRequestSchema
+  );
+  if (error) return next(new AppError(error, 400));
+
+  const loanRequest = await LoanRequestModel.findById(id);
+  if (!loanRequest) return next(new AppError("Loan request not found", 404));
+
+  loanRequest.status = validatedData.status;
+
+  if (validatedData.status === "approved") {
+    loanRequest.approvedAt = new Date();
+  } else if (validatedData.status === "rejected") {
+    loanRequest.rejectedAt = new Date();
+  } else if (validatedData.status === "completed") {
+    loanRequest.completedAt = new Date();
+  }
+
+  await loanRequest.save();
+
+  return successHelper(res, loanRequest, "Loan request updated successfully");
+});
+
+const getLoanInstallment = catchAsync(async (req, res, next) => {
+  const { id, userId } = req.params;
+  const loanInstallment = await InstallmentModel.find({
+    loanId: id,
+    userId: userId,
+  });
+  return successHelper(
+    res,
+    loanInstallment,
+    "Loan installment fetched successfully"
+  );
+});
+
+export {
+  requestLoan,
+  getAllLoanRequest,
+  updateLoanRequest,
+  getLoanInstallment,
+};

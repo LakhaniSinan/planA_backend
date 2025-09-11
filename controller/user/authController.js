@@ -11,6 +11,7 @@ import {
   generateToken,
 } from "../../utilities/helpers.js";
 import { generateOtp, hashOtp } from "../../utilities/otp.js";
+import LoanRequest from "../../model/user/loanRequestModel.js";
 
 const registerUser = async (req, res) => {
   try {

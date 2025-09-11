@@ -7,14 +7,14 @@ const loanSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    amount: { type: Number, required: true }, // principal
+    amount: { type: Number, required: true },
     availableAmount: { 
       type: Number, 
       required: true,
       default: function() {
-        return this.amount; // Initially, available amount equals loan amount
+        return this.amount;
       }
-    }, // New field for available amount
+    }, 
     totalMonths: { type: Number, required: true },
     paidMonths: { type: Number, default: 0 },
     interestRate: { type: Number, required: true },

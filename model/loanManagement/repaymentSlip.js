@@ -12,7 +12,7 @@ const repaymentSlipSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    amount: { type: Number, required: true },
+    amount: { type: Number, required: true }, // amount paid
     status: {
       type: String,
       enum: ["pending", "paid"],

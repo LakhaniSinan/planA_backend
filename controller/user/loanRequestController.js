@@ -103,4 +103,100 @@ const getAllLoanRequest = catchAsync(async (req, res, next) => {
   return successHelper(res, finalData, "Loan requests fetched successfully");
 });
 
-export { requestLoan, getAllLoanRequest };
+
+
+
+const makePayment = catchAsync(async (req, res, next) => {
+  const { loanRequestId, installmentId} = req.body;
+
+  if (!loanRequestId || !installmentId ) {
+    return next(
+      new AppError(
+        "Loan request ID, installment ID, and payment amount are required",
+        400
+      )
+    );
+  }
+
+  //approval
+
+  try {
+    const loanRequest = await LoanRequestModel.findById(loanRequestId).session(
+      session
+    );
+    if (!loanRequest) {
+      return next(new AppError("Loan request not found", 404));
+    }
+
+    if (loanRequest.status !== "approved") {
+      return next(
+        new AppError("Loan must be approved before making payments", 400)
+      );
+    }
+
+    const installment = await InstallmentModel.findById(installmentId).session(
+      session
+    );
+    if (!installment) {
+      return next(new AppError("Installment not found", 404));
+    }
+
+    // if (installment.loanId.toString() !== loanRequestId) {
+    //   return next(
+    //     new AppError("Installment does not belong to this loan", 400)
+    //   );
+    // }
+
+    if (installment.status === "paid") {
+      return next(new AppError("This installment is already paid", 400));
+    }
+
+    // const installmentAmount = installment.amount;
+    // if (paymentAmount !== installmentAmount) {
+    //   return next(
+    //     new AppError(`Payment amount must be exactly ${installmentAmount}`, 400)
+    //   );
+    // }
+
+    // if (paymentAmount > loanRequest.remainingBalance) {
+    //   return next(
+    //     new AppError("Payment amount exceeds remaining balance", 400)
+    //   );
+    // }
+
+    installment.status = "paid";
+    installment.paidAt = new Date();
+    installment.paidAmount = paymentAmount;
+    await installment.save({ session });
+
+    loanRequest.totalPaidAmount += paymentAmount;
+    loanRequest.remainingBalance -= paymentAmount;
+
+    if (loanRequest.remainingBalance <= 0.01) {
+      loanRequest.status = "completed";
+      loanRequest.completedAt = new Date();
+    }
+
+    await loanRequest.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    const responseData = {
+      loanRequestId: loanRequest._id,
+      installmentId: installment._id,
+      paidAmount: paymentAmount,
+      remainingBalance: loanRequest.remainingBalance,
+      totalPaidAmount: loanRequest.totalPaidAmount,
+      loanStatus: loanRequest.status,
+    };
+
+    return successHelper(res, responseData, "Payment processed successfully");
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
+});
+
+export { requestLoan, getAllLoanRequest, makePayment };

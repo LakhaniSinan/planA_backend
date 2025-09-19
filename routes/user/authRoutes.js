@@ -42,12 +42,12 @@ router.put("/reset-password", resetPassword);
 router.put("/admin/update/:id", updateUserByAdmin);
 router.put("/admin/change-password/:id", adminChangePassword);
 router.put("/admin/reset-password/:id", adminResetPassword);
+router.put("/change-password/:id", changePassword);
 
 // =============================================
 // Protected routes (require full authentication + profile completion)
 // =============================================
 router.put("/update/:id", verifyUser, updateUser);
-router.put("/change-password/:id", verifyUser, changePassword);
 router.delete("/delete/:id", verifyUser, deleteUser);
 
 export default router;

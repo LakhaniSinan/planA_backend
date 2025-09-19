@@ -10,7 +10,7 @@ const loanRequestSchema = new mongoose.Schema(
     requestId: {
       type: String,
       // required: true,
-      unique: true,
+   
     },
     requestedAmount: { type: Number, required: true },
     interestRate: { type: Number, required: true },
@@ -44,7 +44,6 @@ const loanRequestSchema = new mongoose.Schema(
   }
 );
 
-// Before saving, initialize balances
 loanRequestSchema.pre("save", function (next) {
   if (this.isNew) {
     const uniqueId = (Date.now().toString().slice(-3) + Math.floor(100 + Math.random() * 900)).slice(-6);
@@ -54,14 +53,12 @@ loanRequestSchema.pre("save", function (next) {
     this.totalPayableAmount = totalPayable;
     this.remainingBalance = totalPayable;
     this.requestId = uniqueId;
-
   }
   next();
 });
 
-// Index for better query performance
-loanRequestSchema.index({ userId: 1, });
-loanRequestSchema.index({ requestId: 1 });
+loanRequestSchema.index({ userId: 1 });
+loanRequestSchema.index({ requestId: 1 }, { unique: true }); 
 loanRequestSchema.index({ status: 1 });
 
 export default mongoose.model("LoanRequest", loanRequestSchema);

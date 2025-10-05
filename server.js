@@ -8,8 +8,8 @@ const MONGO_URI = "mongodb://localhost:27017/loan-app";
 mongoose.connect("mongodb+srv://test:OGo2M1GfEMRjIvJu@cluster0.p2khqnt.mongodb.net/loan-app?retryWrites=true&w=majority&appName=Cluster0")
   .then(() => {
     console.log(`MongoDB connected live ${MONGO_URI}`);
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running at http://localhost:${PORT}`);
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Server running at http://0.0.0.0:${PORT}`);
     });
   })
   .catch((err) => {

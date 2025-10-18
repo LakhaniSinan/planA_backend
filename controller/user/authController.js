@@ -82,7 +82,7 @@ Thank you for joining us!`;
     res,
     { email },
     "Registration successful! OTP sent to your email. Please verify to continue.",
-    201
+    200
   );
 });
 

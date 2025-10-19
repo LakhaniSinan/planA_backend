@@ -9,10 +9,10 @@ import {
 
 const router = express.Router();
 
-router.post("/faq", createFAQ);
-router.get("/faq", getAllFAQs);
-router.put("/faq/:id", updateFAQ);
+router.post("/faq/create", createFAQ);
+router.get("/faq/fetch-all", getAllFAQs);
+router.put("/faq/update/:id", updateFAQ);
 router.get("/faq/:id", getFAQById);
-router.delete("/faq/:id", deleteFAQ);
+router.delete("/faq/delete/:id", deleteFAQ);
 
 export default router;

@@ -45,18 +45,21 @@ const registerUser = catchAsync(async (req, res) => {
   const otp = generateOtp();
   const hashedOtp = hashOtp(otp);
 
+  let userData;
+
   if (existingUser) {
     existingUser.password = hashedPassword;
     existingUser.otp = hashedOtp;
     existingUser.otpExpire = Date.now() + 10 * 60 * 1000;
     await existingUser.save();
+    userData = existingUser;
   } else {
     const latestInterest = await Interest.findOne().sort({
       effectiveDate: -1,
     });
     const defaultInterest = latestInterest ? latestInterest.rate : 10;
 
-    await User.create({
+    userData = await User.create({
       email,
       password: hashedPassword,
       otp: hashedOtp,
@@ -65,6 +68,11 @@ const registerUser = catchAsync(async (req, res) => {
       interest: defaultInterest,
     });
   }
+
+  const userResponse = userData.toObject();
+  delete userResponse.password;
+  delete userResponse.otp;
+  delete userResponse.otpExpire;
 
   const message = `Welcome to our platform!
 
@@ -80,7 +88,7 @@ Thank you for joining us!`;
 
   return successHelper(
     res,
-    { email },
+    { user: userResponse },
     "Registration successful! OTP sent to your email. Please verify to continue.",
     200
   );

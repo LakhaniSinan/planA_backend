@@ -1,11 +1,11 @@
-  import crypto from "crypto";
+import crypto from "crypto";
 
-  const generateOtp = () => {
-   return Math.floor(1000 + Math.random() * 9000).toString();  // 6-digit OTP
-  };
+const generateOtp = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
 
-  const hashOtp = (otp) => {
-    return crypto.createHash("sha256").update(otp).digest("hex");
-  };
+const hashOtp = (otp) => {
+  return crypto.createHash("sha256").update(otp).digest("hex");
+};
 
-  export { generateOtp, hashOtp };
+export { generateOtp, hashOtp };

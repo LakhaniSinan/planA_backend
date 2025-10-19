@@ -105,7 +105,7 @@ const verifyOtp = catchAsync(async (req, res) => {
     return errorHelper(res, null, "User not found", 404);
   }
 
-  if (user.profileCompleted) {
+  if (user.otpVerified) {
     return errorHelper(res, null, "Email already verified", 400);
   }
 
@@ -117,17 +117,23 @@ const verifyOtp = catchAsync(async (req, res) => {
   ) {
     return errorHelper(res, null, "Invalid or expired OTP", 400);
   }
-
+  
   user.otp = undefined;
   user.otpExpire = undefined;
+  user.otpVerified = true;
   await user.save();
 
   const token = generateToken(user);
 
+  const userResponse = user.toObject();
+  delete userResponse.password;
+  delete userResponse.otp;
+  delete userResponse.otpExpire;
+
   return successHelper(
     res,
     {
-      user: { _id: user._id, email: user.email },
+      user: userResponse,
       token,
       nextStep: "complete_profile",
     },

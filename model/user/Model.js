@@ -24,6 +24,7 @@ const userSchema = new mongoose.Schema(
     isEligible: { type: Boolean, default: false },
     loanLimit: { type: Number, default: 5000 },
     interest: { type: Number, default: 10 },
+    otpVerified: { type: Boolean, default: false },
     history: [
       {
         message: { type: String },

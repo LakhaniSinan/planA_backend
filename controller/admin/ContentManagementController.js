@@ -60,7 +60,33 @@ const createOrUpdatePrivacy = async (req, res) => {
   }
 };
 
+const createOrUpdateAbout = async (req, res) => {
+  try {
+    const { title, content, version } = req.body;
+
+    if (!title || !content) {
+      return errorHelper(res, null, "Title and content are required", 400);
+    }
+
+    const about = await Content.findOneAndUpdate(
+      { type: "about" },
+      { 
+        title, 
+        content, 
+        version: version || "1.0",
+        isActive: true 
+      },
+      { new: true, upsert: true }
+    );
+
+    return successHelper(res, about, "About Us updated successfully");
+  } catch (error) {
+    return errorHelper(res, error, "Failed to update About Us");
+  }
+};
+
 export {
   createOrUpdateTerms,
   createOrUpdatePrivacy,
+  createOrUpdateAbout,
 };

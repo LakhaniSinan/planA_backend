@@ -3,11 +3,11 @@ import mongoose from "mongoose";
 
 const contentSchema = new mongoose.Schema(
   {
-    type: { 
-      type: String, 
-      enum: ["terms", "privacy"], 
+    type: {
+      type: String,
+      enum: ["terms", "privacy", "about"],
       required: true,
-      unique: true 
+      unique: true,
     },
     title: { type: String, required: true },
     content: { type: String, required: true },

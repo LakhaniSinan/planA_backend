@@ -7,8 +7,8 @@ import {
 
 const router = express.Router();
 
-router.post("/setting", createSetting);
-router.get("/setting", getSettings);
-router.put("/setting/:id", updateSetting);
+router.post("/create", createSetting);
+router.get("/fetch", getSettings);
+router.put("/:id", updateSetting);
 
 export default router;

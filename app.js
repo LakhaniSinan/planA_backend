@@ -41,7 +41,7 @@ app.use("/api/user", loanRequestRoutes);
 
 // ADMIN ROUTES
 app.use("/api/admin", adminAuthRoutes);
-app.use("/api/admin", settingRoutes);
+app.use("/api/admin/settings", settingRoutes);
 app.use("/api/admin/loan", adminLoanRoutes);
 app.use("/api/admin/content", adminContentRoutes);
 app.use("/api/admin/support", adminSupportRoutes);

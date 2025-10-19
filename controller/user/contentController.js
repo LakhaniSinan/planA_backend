@@ -5,9 +5,9 @@ import { successHelper, errorHelper } from "../../utilities/helpers.js";
 // Get terms and conditions
 const getTerms = async (req, res) => {
   try {
-    const terms = await Content.findOne({ 
-      type: "terms", 
-      isActive: true 
+    const terms = await Content.findOne({
+      type: "terms",
+      isActive: true,
     });
 
     if (!terms) {
@@ -23,9 +23,9 @@ const getTerms = async (req, res) => {
 // Get privacy policy
 const getPrivacy = async (req, res) => {
   try {
-    const privacy = await Content.findOne({ 
-      type: "privacy", 
-      isActive: true 
+    const privacy = await Content.findOne({
+      type: "privacy",
+      isActive: true,
     });
 
     if (!privacy) {
@@ -37,8 +37,21 @@ const getPrivacy = async (req, res) => {
     return errorHelper(res, error, "Failed to fetch privacy policy");
   }
 };
+const getAbout = async (req, res) => {
+  try {
+    const about = await Content.findOne({
+      type: "about",
+      isActive: true,
+    });
 
-export {
-  getTerms,
-  getPrivacy,
+    if (!about) {
+      return errorHelper(res, null, "About Us not found", 404);
+    }
+
+    return successHelper(res, about, "About Us fetched successfully");
+  } catch (error) {
+    return errorHelper(res, error, "Failed to fetch About Us");
+  }
 };
+
+export { getTerms, getPrivacy, getAbout, };

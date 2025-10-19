@@ -10,12 +10,10 @@ const faqSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-
     status: {
       type: Boolean,
       default: true,
     },
-
     order: {
       type: Number,
       default: 0,

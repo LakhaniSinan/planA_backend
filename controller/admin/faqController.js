@@ -9,10 +9,13 @@ import { successHelper } from "../../utilities/helpers.js";
 import { AppError } from "../../middleware/errorMiddleware.js";
 
 const createFAQ = catchAsync(async (req, res, next) => {
-  const [error, validatedData] = schemaValidator(req.body, createFAQSchema);
-  if (error) return next(new AppError(error, 400));
-  const faq = await FaqModel.create(validatedData);
-  successHelper(res, faq, "FAQ created successfully");
+  try {
+    const faq = await FaqModel.create(req.body);
+    successHelper(res, faq, "FAQ created successfully");
+  } catch (error) {
+    return next(new AppError(error, 400));
+  }
+
 });
 
 const updateFAQ = catchAsync(async (req, res, next) => {

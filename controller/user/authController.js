@@ -1,3 +1,4 @@
+import Joi from "joi";
 import User from "../../model/user/Model.js";
 import Interest from "../../model/loanManagement/intrestModel.js";
 import sendEmail from "../../utilities/email.js";
@@ -23,56 +24,44 @@ import {
 } from "../../utilities/helpers.js";
 import { generateOtp, hashOtp } from "../../utilities/otp.js";
 
-const registerUser = catchAsync(async (req, res) => {
-  const { email, password, confirmPassword } = req.body;
+const otpStorage = new Map();
 
-  const { error } = registerUserSchema.validate({
-    email,
-    password,
-    confirmPassword,
+const registerUser = catchAsync(async (req, res) => {
+  const { email } = req.body;
+
+  const schema = Joi.object({
+    email: Joi.string().email().required().messages({
+      "string.email": "Please provide a valid email address",
+      "any.required": "Email is required",
+    }),
   });
+
+  const { error } = schema.validate({ email });
   if (error) {
     return errorHelper(res, null, error.details[0].message, 400);
   }
 
   const existingUser = await User.findOne({ email });
   if (existingUser && existingUser.profileCompleted) {
-    return errorHelper(res, null, "Email already registered and verified", 400);
+    return errorHelper(res, null, "Email already registered", 400);
   }
-
-  const hashedPassword = await hashPassword(password);
 
   const otp = generateOtp();
   const hashedOtp = hashOtp(otp);
 
-  let userData;
-
   if (existingUser) {
-    existingUser.password = hashedPassword;
     existingUser.otp = hashedOtp;
     existingUser.otpExpire = Date.now() + 10 * 60 * 1000;
     await existingUser.save();
-    userData = existingUser;
   } else {
-    const latestInterest = await Interest.findOne().sort({
-      effectiveDate: -1,
-    });
-    const defaultInterest = latestInterest ? latestInterest.rate : 10;
-
-    userData = await User.create({
+    await User.create({
       email,
-      password: hashedPassword,
       otp: hashedOtp,
       otpExpire: Date.now() + 10 * 60 * 1000,
       profileCompleted: false,
-      interest: defaultInterest,
+      otpVerified: false,
     });
   }
-
-  const userResponse = userData.toObject();
-  delete userResponse.password;
-  delete userResponse.otp;
-  delete userResponse.otpExpire;
 
   const message = `Welcome to our platform!
 
@@ -80,7 +69,7 @@ Your email verification OTP is: ${otp}
 
 This OTP will expire in 10 minutes.
 
-Please verify your email to continue with your registration and complete your profile.
+Please verify your email to continue.
 
 Thank you for joining us!`;
 
@@ -88,25 +77,46 @@ Thank you for joining us!`;
 
   return successHelper(
     res,
-    { user: userResponse },
-    "Registration successful! OTP sent to your email. Please verify to continue.",
+    { email },
+    "OTP sent to your email. Please verify to continue.",
     200
   );
 });
 
 const verifyOtp = catchAsync(async (req, res) => {
-  const { email, otp } = req.body;
+  const { email, password, confirmPassword, otp } = req.body;
 
-  const { error } = verifyOtpSchema.validate({ email, otp });
+  const schema = Joi.object({
+    email: Joi.string().email().required(),
+    password: Joi.string()
+      .min(8)
+      .pattern(new RegExp("^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])"))
+      .required()
+      .messages({
+        "string.min": "Password must be at least 8 characters long",
+        "string.pattern.base":
+          "Password must contain at least one uppercase letter, one lowercase letter, and one number",
+      }),
+    confirmPassword: Joi.string()
+      .valid(Joi.ref("password"))
+      .required()
+      .messages({
+        "any.only": "Confirm password must match password",
+      }),
+    otp: Joi.string().length(6).required(),
+  });
+
+  const { error } = schema.validate({
+    email,
+    password,
+    confirmPassword,
+    otp,
+  });
   if (error) return errorHelper(res, null, error.details[0].message, 400);
 
   const user = await User.findOne({ email });
   if (!user) {
     return errorHelper(res, null, "User not found", 404);
-  }
-
-  if (user.otpVerified) {
-    return errorHelper(res, null, "Email already verified", 400);
   }
 
   const hashedOtp = hashOtp(otp);
@@ -117,18 +127,25 @@ const verifyOtp = catchAsync(async (req, res) => {
   ) {
     return errorHelper(res, null, "Invalid or expired OTP", 400);
   }
-  
+
+  const hashedPassword = await hashPassword(password);
+
+  const latestInterest = await Interest.findOne().sort({
+    effectiveDate: -1,
+  });
+  const defaultInterest = latestInterest ? latestInterest.rate : 10;
+
+  user.password = hashedPassword;
   user.otp = undefined;
   user.otpExpire = undefined;
   user.otpVerified = true;
+  user.interest = defaultInterest;
   await user.save();
 
   const token = generateToken(user);
 
   const userResponse = user.toObject();
   delete userResponse.password;
-  delete userResponse.otp;
-  delete userResponse.otpExpire;
 
   return successHelper(
     res,
@@ -141,6 +158,7 @@ const verifyOtp = catchAsync(async (req, res) => {
     200
   );
 });
+
 
 const completeProfile = catchAsync(async (req, res) => {
   const {
@@ -180,18 +198,20 @@ const completeProfile = catchAsync(async (req, res) => {
       profileCompleted: true,
     },
     { new: true }
-  ).select("-password -otp");
+  ).select("-password");
 
   const token = generateToken(updatedUser);
 
+  const userResponse = updatedUser.toObject();
+  delete userResponse.password;
+
   return successHelper(
     res,
-    { user: updatedUser, token },
+    { user: userResponse, token },
     "Profile completed successfully! You can now access all features.",
     200
   );
 });
-
 const loginUser = catchAsync(async (req, res) => {
   const { email, password } = req.body;
 
@@ -203,10 +223,13 @@ const loginUser = catchAsync(async (req, res) => {
 
   if (!user.profileCompleted) {
     const token = generateToken(user);
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
     return successHelper(
       res,
       {
-        user: { _id: user._id, email: user.email },
+        user: userResponse,
         token,
         nextStep: "complete_profile",
       },
@@ -219,10 +242,13 @@ const loginUser = catchAsync(async (req, res) => {
   if (!isMatch) return errorHelper(res, null, "Invalid credentials", 401);
 
   const token = generateToken(user);
-  user.password = undefined;
 
-  return successHelper(res, { user, token }, "Login successful");
+  const userResponse = user.toObject();
+  delete userResponse.password;
+
+  return successHelper(res, { user: userResponse, token }, "Login successful");
 });
+
 
 const resendOtp = catchAsync(async (req, res) => {
   const { email } = req.body;
@@ -249,6 +275,7 @@ const resendOtp = catchAsync(async (req, res) => {
 
   return successHelper(res, null, "OTP resent successfully", 200);
 });
+
 
 const updateUser = catchAsync(async (req, res) => {
   const id = req.params.id;

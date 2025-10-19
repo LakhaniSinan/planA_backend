@@ -65,12 +65,15 @@ const registerUser = async (req, res) => {
     const otp = generateOtp();
     const hashedOtp = hashOtp(otp);
 
+    let newUserData;
+
     if (existingUser) {
       // Update existing unverified user
       existingUser.password = hashedPassword;
       existingUser.emailVerificationOtp = hashedOtp;
       existingUser.emailVerificationExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
       await existingUser.save();
+      newUserData = existingUser;
     } else {
       // Get global default interest rate
       const latestInterest = await Interest.findOne().sort({
@@ -79,7 +82,7 @@ const registerUser = async (req, res) => {
       const defaultInterestRate = latestInterest ? latestInterest.rate : 5; // 5% fallback
 
       // Create new user with email, password, and OTP verification data
-      await User.create({
+      newUserData = await User.create({
         email,
         password: hashedPassword,
         emailVerificationOtp: hashedOtp,
@@ -89,6 +92,10 @@ const registerUser = async (req, res) => {
         interestRate: defaultInterestRate, // Set default interest rate
       });
     }
+
+    // Remove password from user object
+    const userResponse = newUserData.toObject();
+    delete userResponse.password;
 
     // Send OTP email
     const message = `Welcome to our platform!
@@ -105,7 +112,7 @@ Thank you for joining us!`;
 
     return successHelper(
       res,
-      { email },
+      { user: userResponse },
       "Registration successful! OTP sent to your email. Please verify to continue.",
       201
     );

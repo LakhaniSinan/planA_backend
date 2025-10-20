@@ -15,54 +15,63 @@ const requestLoan = catchAsync(async (req, res, next) => {
   const [error, validatedData] = schemaValidator(req.body, loanRequestSchema);
   if (error) return next(new AppError(error, 400));
 
-  const user = await UserModel.findById(validatedData.userId);
-  if (!user) return next(new AppError("User not found", 404));
+  const user = req.user;
+
+  if (user.isEligible === false) {
+    return next(
+      new AppError(
+        "You are not eligible for a loan. Please complete your profile verification.",
+        403
+      )
+    );
+  }
+
+  if (user.loanLimit < validatedData.amount) {
+    return next(
+      new AppError(
+        `Requested amount (${validatedData.amount.toLocaleString()}) exceeds your loan limit of ${user.loanLimit.toLocaleString()}`,
+        400
+      )
+    );
+  }
 
   const existingLoanRequest = await LoanRequestModel.findOne({
     userId: user._id,
     status: { $in: ["pending", "approved"] },
   });
 
-  if (existingLoanRequest)
+  if (existingLoanRequest) {
     return next(
-      new AppError("User already has a pending or approved loan request", 400)
+      new AppError("You already have a pending or approved loan request", 400)
     );
-
-  // if (user.isEligible === false) return new AppError("User is not eligible for loan", 400);
-
-  if (user.loanLimit < validatedData.amount)
-    return next(
-      new AppError("User loan limit is less than the requested amount", 400)
-    );
-
-  // this.totalPayableAmount = totalPayable;
-  // this.remainingBalance = totalPayable;
-  // this.requestId = uniqueId;
+  }
 
   const payload = new LoanRequestModel({
     userId: user._id,
     availableAmount: user.loanLimit,
     requestedAmount: validatedData.amount,
-    interestRate: user.interestRate,
+    interestRate: user.interest, 
     tenureType: validatedData.tenureType,
     tenureValue: validatedData.tenureValue,
   });
 
   const loanRequest = await payload.save();
 
-  // Create Installment
-  const installment = [];
+  const installments = [];
+  const installmentAmount = loanRequest.totalPayableAmount / validatedData.tenureValue;
+
   for (let i = 0; i < validatedData.tenureValue; i++) {
-    installment.push({
+    installments.push({
       loanId: loanRequest._id,
       userId: user._id,
-      amount: loanRequest.totalPayableAmount / validatedData.tenureValue,
+      amount: installmentAmount,
       dueDate: calculateDueDate(new Date(), i, validatedData.tenureType),
     });
   }
-  await InstallmentModel.insertMany(installment);
+  
+  await InstallmentModel.insertMany(installments);
 
-  return successHelper(res, payload, "Loan requested successfully");
+  return successHelper(res, loanRequest, "Loan requested successfully");
 });
 
 const getAllLoanRequest = catchAsync(async (req, res, next) => {

@@ -26,7 +26,6 @@ const userSchema = new mongoose.Schema(
     interest: { type: Number, default: 10 },
     otpVerified: { type: Boolean, default: false },
     isNotification: { type: Boolean, default: true },
-    isRegistered: {type: Boolean, default: false},
     history: [
       {
         message: { type: String },

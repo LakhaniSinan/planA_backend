@@ -1,6 +1,5 @@
 import express from "express";
 import {
-  verifyEmail,
   registerUser,
   verifyOtp,
   completeProfile,
@@ -21,7 +20,6 @@ const router = express.Router();
 
 import { verifyUser } from "../../middleware/user/auth.js";
 
-router.post("/verify-email", verifyEmail);
 router.post("/register", registerUser);
 router.post("/verify-otp", verifyOtp);
 router.post("/resend-otp", resendOtp);

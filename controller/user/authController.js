@@ -25,34 +25,55 @@ import {
 } from "../../utilities/helpers.js";
 import { generateOtp, hashOtp } from "../../utilities/otp.js";
 
-const verifyEmail = catchAsync(async (req, res) => {
-  const { email } = req.body;
-  const { error } = verifyEmailSchema.validate({ email });
+const registerUser = catchAsync(async (req, res) => {
+  const { email, password} = req.body;
+
+  const { error } = registerUserSchema.validate({
+    email,
+    password,
+  });
   if (error) {
     return errorHelper(res, null, error.details[0].message, 400);
   }
 
-  const user = await User.findOne({ email });
-  if (user && user.profileCompleted) {
-    return errorHelper(res, null, "Email already registered", 400);
+  const existingUser = await User.findOne({ email });
+  if (existingUser && existingUser.profileCompleted) {
+    return errorHelper(res, null, "Email already registered and verified", 400);
   }
+
+  const hashedPassword = await hashPassword(password);
 
   const otp = generateOtp();
   const hashedOtp = hashOtp(otp);
 
-  if (user) {
-    user.otp = hashedOtp;
-    user.otpExpire = Date.now() + 10 * 60 * 1000;
-    await user.save();
+  let userData;
+
+  if (existingUser) {
+    existingUser.password = hashedPassword;
+    existingUser.otp = hashedOtp;
+    existingUser.otpExpire = Date.now() + 10 * 60 * 1000;
+    await existingUser.save();
+    userData = existingUser;
   } else {
-    await User.create({
+    const latestInterest = await Interest.findOne().sort({
+      effectiveDate: -1,
+    });
+    const defaultInterest = latestInterest ? latestInterest.rate : 10;
+
+    userData = await User.create({
       email,
+      password: hashedPassword,
       otp: hashedOtp,
       otpExpire: Date.now() + 10 * 60 * 1000,
       profileCompleted: false,
-      otpVerified: false,
+      interest: defaultInterest,
     });
   }
+
+  const userResponse = userData.toObject();
+  delete userResponse.password;
+  delete userResponse.otp;
+  delete userResponse.otpExpire;
 
   const message = `Welcome to our platform!
 
@@ -60,7 +81,7 @@ Your email verification OTP is: ${otp}
 
 This OTP will expire in 10 minutes.
 
-Please verify your email to continue.
+Please verify your email to continue with your registration and complete your profile.
 
 Thank you for joining us!`;
 
@@ -68,8 +89,8 @@ Thank you for joining us!`;
 
   return successHelper(
     res,
-    { email },
-    "OTP sent to your email. Please verify to continue.",
+    { user: userResponse },
+    "Registration successful! OTP sent to your email. Please verify to continue.",
     200
   );
 });
@@ -119,47 +140,7 @@ const verifyOtp = catchAsync(async (req, res) => {
   );
 });
 
-const registerUser = catchAsync(async (req, res) => {
-  const { email, password } = req.body;
 
-  const { error } = registerUserSchema.validate({ email, password });
-  if (error) {
-    return errorHelper(res, null, error.details[0].message, 400);
-  }
-
-  const user = await User.findOne({ email });
-
-  if (!user || !user.otpVerified) {
-    return errorHelper(res, null, "Please verify your email first", 400);
-  }
-  
-  if(user.isRegistered){
-    return errorHelper(res, null, "Email already registered", 400)
-  }
-
-  const latestInterest = await Interest.findOne().sort({
-    effectiveDate: -1,
-  });
-  const defaultInterest = latestInterest ? latestInterest.rate : 10;
-
-  const hashedPassword = await hashPassword(password)
-
-  user.password = hashedPassword;
-  user.interest = defaultInterest;
-  user.isRegistered = true;
-  await user.save();
-
-  const token = generateToken(user);
-  const userResponse = user.toObject();
-  delete userResponse.password;
-
-  return successHelper(
-    res,
-    { user: userResponse, token, nextStep: "completeProfile" },
-    "Registration successful. Please complete your profile.",
-    200
-  );
-});
 
 const completeProfile = catchAsync(async (req, res) => {
   const {
@@ -508,7 +489,6 @@ const adminResetPassword = catchAsync(async (req, res) => {
 });
 
 export {
-  verifyEmail,
   registerUser,
   verifyOtp,
   completeProfile,

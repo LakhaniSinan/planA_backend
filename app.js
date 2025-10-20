@@ -12,6 +12,7 @@ import notificationRoutes from "./routes/user/notificationRoutes.js";
 import supportRoutes from "./routes/user/supportRoutes.js";
 import contentRoutes from "./routes/user/contentRoutes.js";
 import loanRequestRoutes from "./routes/user/loanRequestRoute.js";
+import userFaqRoutes from "./routes/user/faqRoutes.js"
 
 // ADMIN IMPORTS
 import adminContentRoutes from "./routes/admin/contentManagementRoutes.js";
@@ -38,6 +39,7 @@ app.use("/api/user/notifications", notificationRoutes);
 app.use("/api/user/support", supportRoutes);
 app.use("/api/user/content", contentRoutes);
 app.use("/api/user", loanRequestRoutes);
+app.use("/api/user", userFaqRoutes);
 
 // ADMIN ROUTES
 app.use("/api/admin", adminAuthRoutes);

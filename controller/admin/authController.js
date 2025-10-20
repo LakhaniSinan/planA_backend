@@ -9,7 +9,6 @@ import {
 import { generateOtp, hashOtp } from "../../utilities/otp.js";
 import sendEmail from "../../utilities/email.js";
 
-// Register admin
 const registerAdmin = async (req, res) => {
   try {
     const { name, email, password } = req.body;

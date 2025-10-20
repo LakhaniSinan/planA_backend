@@ -10,7 +10,7 @@ import { verifyUser } from "../../middleware/user/auth.js";
 
 const router = express.Router();
 
-router.get("/", verifyUser, getMyNotifications);
+router.get("/fetch", verifyUser, getMyNotifications);
 router.get("/unread-count", verifyUser, getUnreadCount);
 router.put("/read/:id", verifyUser, markNotificationAsRead);
 router.put("/read-all", verifyUser, markAllNotificationsAsRead);

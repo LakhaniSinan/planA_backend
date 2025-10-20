@@ -1,7 +1,6 @@
 import express from "express";
-const router = express.Router();
-
 import {
+  verifyEmail,
   registerUser,
   verifyOtp,
   completeProfile,
@@ -18,22 +17,17 @@ import {
   updateUserByAdmin,
   adminResetPassword,
 } from "../../controller/user/authController.js";
+const router = express.Router();
 
 import { verifyUser } from "../../middleware/user/auth.js";
 
-// =============================================
-// NEW OTP-based Registration Flow (Public routes)
-// =============================================
-router.post("/register", registerUser); // Step 1: Email only
-router.post("/verify-otp", verifyOtp); // Step 2: Verify OTP
-router.post("/resend-otp", resendOtp); // Resend OTP if needed
+router.post("/verify-email", verifyEmail);
+router.post("/register", registerUser);
+router.post("/verify-otp", verifyOtp);
+router.post("/resend-otp", resendOtp);
 
-// Profile completion (requires token from OTP verification)
-router.post("/complete-profile", verifyUser, completeProfile); // Step 3: Complete profile
+router.post("/complete-profile", verifyUser, completeProfile);
 
-// =============================================
-// Existing routes (Public)
-// =============================================
 router.post("/login", loginUser);
 router.get("/get", getUsers);
 router.get("/get/:id", getUsersById);
@@ -44,10 +38,7 @@ router.put("/admin/change-password/:id", adminChangePassword);
 router.put("/admin/reset-password/:id", adminResetPassword);
 router.put("/change-password/:id", changePassword);
 
-// =============================================
-// Protected routes (require full authentication + profile completion)
-// =============================================
-router.put("/update/:id", verifyUser, updateUser);
+router.put("/update/:id", updateUser);
 router.delete("/delete/:id", verifyUser, deleteUser);
 
 export default router;

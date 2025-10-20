@@ -40,18 +40,21 @@ const updateSettingSchema = Joi.object({
   contact: Joi.string().optional(),
 }).unknown(false);
 
- const registerUserSchema = Joi.object({
+const verifyEmailSchema = Joi.object({
   email: Joi.string().email().required(),
-  password: Joi.string().min(6).required(),
-  confirmPassword: Joi.string().valid(Joi.ref("password")).required(),
 });
 
- const verifyOtpSchema = Joi.object({
+const registerUserSchema = Joi.object({
   email: Joi.string().email().required(),
-  otp: Joi.string().length(6).required(),
+  password: Joi.string().min(6).required()
 });
 
- const completeProfileSchema = Joi.object({
+const verifyOtpSchema = Joi.object({
+  email: Joi.string().email().required(),
+  otp: Joi.string().length(6).required()
+});
+
+const completeProfileSchema = Joi.object({
   name: Joi.string().required(),
   dateOfBirth: Joi.date().required(),
   contactNumber: Joi.string().required(),
@@ -63,33 +66,33 @@ const updateSettingSchema = Joi.object({
   governmentId: Joi.string().required(),
 });
 
- const loginUserSchema = Joi.object({
+const loginUserSchema = Joi.object({
   email: Joi.string().email().required(),
   password: Joi.string().required(),
 });
 
- const resendOtpSchema = Joi.object({
+const resendOtpSchema = Joi.object({
   email: Joi.string().email().required(),
 });
 
- const forgotPasswordSchema = Joi.object({
+const forgotPasswordSchema = Joi.object({
   email: Joi.string().email().required(),
 });
 
- const resetPasswordSchema = Joi.object({
+const resetPasswordSchema = Joi.object({
   otp: Joi.string().length(6).required(),
   newPassword: Joi.string().min(6).required(),
   confirmNewPassword: Joi.string().valid(Joi.ref("newPassword")).required(),
   email: Joi.string().email().required(),
 });
 
- const changePasswordSchema = Joi.object({
+const changePasswordSchema = Joi.object({
   oldPassword: Joi.string().required(),
   newPassword: Joi.string().min(6).required(),
   confirmNewPassword: Joi.string().valid(Joi.ref("newPassword")).required(),
 });
 
- const adminResetPasswordSchema = Joi.object({
+const adminResetPasswordSchema = Joi.object({
   newPassword: Joi.string().min(6).required(),
   confirmPassword: Joi.string().valid(Joi.ref("newPassword")).required(),
 });
@@ -100,7 +103,7 @@ export {
   createFAQSchema,
   updateFAQSchema,
   updateSettingSchema,
-  registerUserSchema,
+  verifyEmailSchema,
   verifyOtpSchema,
   completeProfileSchema,
   loginUserSchema,
@@ -109,5 +112,5 @@ export {
   resetPasswordSchema,
   changePasswordSchema,
   adminResetPasswordSchema,
-  
+  registerUserSchema,
 };

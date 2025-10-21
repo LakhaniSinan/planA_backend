@@ -55,6 +55,7 @@ const verifyOtpSchema = Joi.object({
 
 const completeProfileSchema = Joi.object({
   name: Joi.string().required(),
+  image: Joi.string().required(),
   dateOfBirth: Joi.date().required(),
   contactNumber: Joi.string().required(),
   address: Joi.string().required(),

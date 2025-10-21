@@ -29,6 +29,8 @@ const updateFAQ = catchAsync(async (req, res, next) => {
 
 const getAllFAQs = catchAsync(async (req, res) => {
   const faqs = await FaqModel.find().sort({ order: 1, createdAt: -1 });
+  console.log(faqs,"faqsfaqsfaqsfaqs");
+  
   successHelper(res, faqs, "FAQs fetched successfully");
 });
 

@@ -162,6 +162,7 @@ const completeProfile = catchAsync(async (req, res) => {
     city,
     postalCode,
     governmentId,
+    image
   } = req.body;
 
   const { error } = completeProfileSchema.validate(req.body);
@@ -178,6 +179,7 @@ const completeProfile = catchAsync(async (req, res) => {
     req.user._id,
     {
       name,
+      image,
       dateOfBirth,
       contactNumber,
       address,
@@ -189,7 +191,7 @@ const completeProfile = catchAsync(async (req, res) => {
       profileCompleted: true,
     },
     { new: true }
-  ).select("-password");
+  ).select("-password")
 
   const token = generateToken(updatedUser);
 
@@ -203,6 +205,7 @@ const completeProfile = catchAsync(async (req, res) => {
     200
   );
 });
+
 const loginUser = catchAsync(async (req, res) => {
   const { email, password } = req.body;
 

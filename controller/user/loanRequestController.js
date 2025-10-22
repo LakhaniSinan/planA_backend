@@ -1,12 +1,13 @@
 import { AppError } from "../../middleware/errorMiddleware.js";
 import LoanRequestModel from "../../model/user/loanRequestModel.js";
-import UserModel from "../../model/user/Model.js";
+import User from "../../model/user/Model.js";
 import InstallmentModel from "../../model/loanManagement/repaymentSlip.js";
 import catchAsync from "../../utilities/catchAsync.js";
 import {
   calculateDueDate,
   successHelper,
   roundNumber,
+  addLoanHistoryEntry,
 } from "../../utilities/helpers.js";
 import {
   loanRequestSchema,
@@ -153,6 +154,7 @@ const updateLoanRequest = catchAsync(async (req, res, next) => {
   const loanRequest = await LoanRequestModel.findById(loanId);
   if (!loanRequest) return next(new AppError("Loan request not found", 404));
 
+  const oldStatus = loanRequest.status;
   loanRequest.status = validatedData.status;
 
   if (validatedData.status === "approved") {
@@ -165,7 +167,27 @@ const updateLoanRequest = catchAsync(async (req, res, next) => {
 
   await loanRequest.save();
 
+  if (oldStatus !== validatedData.status) {
+    await addLoanHistoryEntry(
+      loanRequest.userId,
+      loanRequest._id,
+      loanRequest.requestedAmount,
+      validatedData.status
+    );
+  }
+
   return successHelper(res, loanRequest, "Loan request updated successfully");
+});
+
+const getUserHistory = catchAsync(async (req, res, next) => {
+  const { userId } = req.params;
+
+  const user = await User.findById(userId).select("history");
+  if (!user) return next(new AppError("User not found", 404));
+
+  const history = user.history.sort((a, b) => b.createdAt - a.createdAt);
+
+  return successHelper(res, history, "User history fetched successfully");
 });
 
 const getLoanInstallment = catchAsync(async (req, res, next) => {
@@ -189,10 +211,10 @@ const makePayment = catchAsync(async (req, res, next) => {
     loanRequestId,
     installmentId,
     paymentAmount: rawPaymentAmount,
-    slipUrl
+    slipUrl,
   } = req.body;
 
-  if ((!loanRequestId || !installmentId || !slipUrl)) {
+  if (!loanRequestId || !installmentId || !slipUrl) {
     return next(
       new AppError(
         "Loan request ID, installment ID and slipUrl are required",
@@ -239,7 +261,10 @@ const makePayment = catchAsync(async (req, res, next) => {
 
     if (paymentAmount > installmentRemaining) {
       return next(
-        new AppError("Payment amount exceeds remaining installment amount", 400)
+        new AppError(
+          `Payment amount exceeds remaining installment amount. Remaining: ${installmentRemaining}`,
+          400
+        )
       );
     }
 
@@ -257,6 +282,8 @@ const makePayment = catchAsync(async (req, res, next) => {
     installment.slipUrl = slipUrl;
     await installment.save();
 
+    const oldLoanStatus = loanRequest.status; 
+
     loanRequest.totalPaidAmount = roundNumber(
       (loanRequest.totalPaidAmount || 0) + paymentAmount
     );
@@ -273,14 +300,29 @@ const makePayment = catchAsync(async (req, res, next) => {
 
     await loanRequest.save();
 
+    if (oldLoanStatus !== "completed" && loanRequest.status === "completed") {
+      await addLoanHistoryEntry(
+        loanRequest.userId,
+        loanRequest._id,
+        loanRequest.requestedAmount,
+        "completed"
+      );
+    }
+
+    const newInstallmentRemaining = roundNumber(installment.amount - installment.paidAmount);
+
     const responseData = {
       loanRequestId: loanRequest._id,
       installmentId: installment._id,
       paidAmount: paymentAmount,
+      installmentTotalAmount: installment.amount,
+      installmentPaidAmount: installment.paidAmount,
+      installmentRemainingAmount: newInstallmentRemaining,
+      installmentStatus: installment.status,
       remainingBalance: loanRequest.remainingBalance,
       totalPaidAmount: loanRequest.totalPaidAmount,
       loanStatus: loanRequest.status,
-      slipUrl: slipUrl
+      slipUrl: slipUrl,
     };
 
     return successHelper(res, responseData, "Payment processed successfully");
@@ -295,4 +337,5 @@ export {
   updateLoanRequest,
   getLoanInstallment,
   makePayment,
+  getUserHistory,
 };

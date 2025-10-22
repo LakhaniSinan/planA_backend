@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import User from "../model/user/Model.js"
 // Standard success response
 const successHelper = (res, data, message, status = 200) => {
   res.status(status).json({
@@ -59,6 +60,57 @@ function roundNumber(value, decimals = 2) {
   return Number(value.toFixed(decimals));
 }
 
+const addLoanHistoryEntry = async (userId, loanId, amount, status) => {
+  try {
+    const historyData = {
+      approved: {
+        title: "Loan Approved",
+        message: `₦${amount.toLocaleString()} was approved`,
+      },
+      rejected: {
+        title: "Loan Declined",
+        message: `We're sorry your loan was declined`,
+      },
+      disbursed: {
+        title: "Loan Disbursed",
+        message: `₦${amount.toLocaleString()} was disbursed to your bank`,
+      },
+      received: {
+        title: "Loan Received",
+        message: `Loan of ₦${amount.toLocaleString()} was received`,
+      },
+      completed: {
+        title: "Loan Completed",
+        message: `Loan of ₦${amount.toLocaleString()} was completed`,
+      },
+    };
+
+    const { title, message } = historyData[status] || {
+      title: "Loan Update",
+      message: `Loan status updated to ${status}`,
+    };
+
+    await User.findByIdAndUpdate(
+      userId,
+      {
+        $push: {
+          history: {
+            title,
+            message,
+            amount,
+            loanId,
+            status,
+            createdAt: new Date(),
+          },
+        },
+      },
+      { new: true }
+    );
+  } catch (error) {
+    console.error("Error adding loan history entry:", error);
+  }
+};
+
 
 export {
   successHelper,
@@ -66,6 +118,7 @@ export {
   generateToken,
   hashPassword,
   signToken,
-  calculateDueDate
-  , roundNumber
+  calculateDueDate,
+   roundNumber,
+   addLoanHistoryEntry
 };

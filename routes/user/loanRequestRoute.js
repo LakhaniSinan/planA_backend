@@ -4,7 +4,8 @@ import {
   getLoanInstallment,
   requestLoan,
   updateLoanRequest,
-  makePayment
+  makePayment,
+  getUserHistory
 } from "../../controller/user/loanRequestController.js";
 import { verifyUser } from "../../middleware/user/auth.js";
 import verifyAdmin from "../../middleware/admin/auth.js";
@@ -15,5 +16,6 @@ router.get("/request-loans", getAllLoanRequest);
 router.put("/update-loan/status/:loanId",verifyAdmin, updateLoanRequest);
 router.get("/request-loan/installment/:id/:userId", getLoanInstallment);
 router.post("/make-payment",verifyUser, makePayment);
+router.get("/loan-history/:userId", verifyUser, getUserHistory);
 
 export default router;

@@ -3,9 +3,9 @@ import mongoose from "mongoose";
 const userSchema = new mongoose.Schema(
   {
     name: { type: String },
-    email: { 
-      type: String, 
-      required: true, 
+    email: {
+      type: String,
+      required: true,
     },
     password: { type: String, select: false },
     contactNumber: { type: String },
@@ -28,20 +28,24 @@ const userSchema = new mongoose.Schema(
     isNotification: { type: Boolean, default: true },
     history: [
       {
-        message: { type: String },
+        title: { type: String }, 
+        message: { type: String }, 
+        amount: { type: Number }, 
+        loanId: { type: mongoose.Schema.Types.ObjectId, ref: "LoanRequest" }, 
+        status: { type: String }, 
         createdAt: { type: Date, default: Date.now },
       },
     ],
-    
+
     // phoneNumber: { type: String },
     // role: { type: String, default: "user" },
     // fullName: { type: String },
     // interestRate: { type: Number },
   },
-  { timestamps: true, collection: 'users' }
+  { timestamps: true, collection: "users" }
 );
 
-userSchema.index({ email: 1 }, { unique: true }); 
+userSchema.index({ email: 1 }, { unique: true });
 userSchema.index({ profileCompleted: 1 });
 
 const User = mongoose.model("User", userSchema);

@@ -270,6 +270,8 @@ const setGlobalInterestRate = async (req, res) => {
   }
 };
 
+// const getInterestRates = 
+
 // ============================
 // GET LOAN STATISTICS (New functionality)
 // ============================

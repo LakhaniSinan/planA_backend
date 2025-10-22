@@ -3,13 +3,17 @@ import LoanRequestModel from "../../model/user/loanRequestModel.js";
 import UserModel from "../../model/user/Model.js";
 import InstallmentModel from "../../model/loanManagement/repaymentSlip.js";
 import catchAsync from "../../utilities/catchAsync.js";
-import { calculateDueDate, successHelper, roundNumber } from "../../utilities/helpers.js";
+import {
+  calculateDueDate,
+  successHelper,
+  roundNumber,
+} from "../../utilities/helpers.js";
 import {
   loanRequestSchema,
   updateLoanRequestSchema,
 } from "../../utilities/validation.js";
 import { schemaValidator } from "../../middleware/schemaMiddleware.js";
-import mongoose from "mongoose";  
+import mongoose from "mongoose";
 
 const requestLoan = catchAsync(async (req, res, next) => {
   const [error, validatedData] = schemaValidator(req.body, loanRequestSchema);
@@ -50,7 +54,7 @@ const requestLoan = catchAsync(async (req, res, next) => {
     userId: user._id,
     availableAmount: user.loanLimit,
     requestedAmount: validatedData.amount,
-    interestRate: user.interest, 
+    interestRate: user.interest,
     tenureType: validatedData.tenureType,
     tenureValue: validatedData.tenureValue,
   });
@@ -59,7 +63,8 @@ const requestLoan = catchAsync(async (req, res, next) => {
 
   // create installments with rounded amounts. distribute any rounding remainder to last installment
   const installments = [];
-  const rawInstallment = loanRequest.totalPayableAmount / validatedData.tenureValue;
+  const rawInstallment =
+    loanRequest.totalPayableAmount / validatedData.tenureValue;
   const roundedInstallment = roundNumber(rawInstallment);
   let totalAssigned = 0;
 
@@ -165,10 +170,13 @@ const updateLoanRequest = catchAsync(async (req, res, next) => {
 
 const getLoanInstallment = catchAsync(async (req, res, next) => {
   const { id, userId } = req.params;
+
   const loanInstallment = await InstallmentModel.find({
     loanId: id,
     userId: userId,
   });
+
+  console.log("LOANLOANLOAN", loanInstallment);
   return successHelper(
     res,
     loanInstallment,
@@ -176,15 +184,25 @@ const getLoanInstallment = catchAsync(async (req, res, next) => {
   );
 });
 
-
 const makePayment = catchAsync(async (req, res, next) => {
-  const { loanRequestId, installmentId, paymentAmount: rawPaymentAmount } = req.body;
+  const {
+    loanRequestId,
+    installmentId,
+    paymentAmount: rawPaymentAmount,
+    slipUrl
+  } = req.body;
 
-  if (!loanRequestId || !installmentId) {
-    return next(new AppError("Loan request ID and installment ID are required", 400));
+  if ((!loanRequestId || !installmentId || !slipUrl)) {
+    return next(
+      new AppError(
+        "Loan request ID, installment ID and slipUrl are required",
+        400
+      )
+    );
   }
 
-  const paymentAmount = rawPaymentAmount === undefined ? NaN : Number(rawPaymentAmount);
+  const paymentAmount =
+    rawPaymentAmount === undefined ? NaN : Number(rawPaymentAmount);
   if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
     return next(new AppError("paymentAmount must be a positive number", 400));
   }
@@ -194,14 +212,22 @@ const makePayment = catchAsync(async (req, res, next) => {
     if (!loanRequest) return next(new AppError("Loan request not found", 404));
 
     if (loanRequest.status !== "approved") {
-      return next(new AppError("Loan must be approved before making payments", 400));
+      return next(
+        new AppError("Loan must be approved before making payments", 400)
+      );
     }
 
     const installment = await InstallmentModel.findById(installmentId);
     if (!installment) return next(new AppError("Installment not found", 404));
 
-    if (req.user && req.user._id && installment.userId.toString() !== req.user._id.toString()) {
-      return next(new AppError("You are not authorized to pay this installment", 403));
+    if (
+      req.user &&
+      req.user._id &&
+      installment.userId.toString() !== req.user._id.toString()
+    ) {
+      return next(
+        new AppError("You are not authorized to pay this installment", 403)
+      );
     }
 
     if (installment.status === "paid") {
@@ -212,11 +238,15 @@ const makePayment = catchAsync(async (req, res, next) => {
     const installmentRemaining = installment.amount - alreadyPaid;
 
     if (paymentAmount > installmentRemaining) {
-      return next(new AppError("Payment amount exceeds remaining installment amount", 400));
+      return next(
+        new AppError("Payment amount exceeds remaining installment amount", 400)
+      );
     }
 
     if (paymentAmount > loanRequest.remainingBalance) {
-      return next(new AppError("Payment amount exceeds remaining loan balance", 400));
+      return next(
+        new AppError("Payment amount exceeds remaining loan balance", 400)
+      );
     }
 
     installment.paidAmount = roundNumber(alreadyPaid + paymentAmount);
@@ -224,10 +254,16 @@ const makePayment = catchAsync(async (req, res, next) => {
       installment.status = "paid";
       installment.paidAt = new Date();
     }
+    installment.slipUrl = slipUrl;
     await installment.save();
 
-    loanRequest.totalPaidAmount = roundNumber((loanRequest.totalPaidAmount || 0) + paymentAmount);
-    loanRequest.remainingBalance = roundNumber((loanRequest.remainingBalance || loanRequest.totalPayableAmount || 0) - paymentAmount);
+    loanRequest.totalPaidAmount = roundNumber(
+      (loanRequest.totalPaidAmount || 0) + paymentAmount
+    );
+    loanRequest.remainingBalance = roundNumber(
+      (loanRequest.remainingBalance || loanRequest.totalPayableAmount || 0) -
+        paymentAmount
+    );
 
     if (Math.abs(loanRequest.remainingBalance) < 0.01) {
       loanRequest.remainingBalance = 0;
@@ -244,6 +280,7 @@ const makePayment = catchAsync(async (req, res, next) => {
       remainingBalance: loanRequest.remainingBalance,
       totalPaidAmount: loanRequest.totalPaidAmount,
       loanStatus: loanRequest.status,
+      slipUrl: slipUrl
     };
 
     return successHelper(res, responseData, "Payment processed successfully");
@@ -259,8 +296,3 @@ export {
   getLoanInstallment,
   makePayment,
 };
-
-
-
-
-

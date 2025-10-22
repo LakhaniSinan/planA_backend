@@ -25,6 +25,7 @@ const repaymentSlipSchema = new mongoose.Schema(
     paidAt: {
       type: Date,
     },
+    paidAmount: { type: Number },
     slipUrl: { type: String },
     uploadDate: { type: Date },
   },

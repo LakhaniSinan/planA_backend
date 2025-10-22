@@ -3,7 +3,7 @@ import LoanRequestModel from "../../model/user/loanRequestModel.js";
 import UserModel from "../../model/user/Model.js";
 import InstallmentModel from "../../model/loanManagement/repaymentSlip.js";
 import catchAsync from "../../utilities/catchAsync.js";
-import { calculateDueDate, successHelper } from "../../utilities/helpers.js";
+import { calculateDueDate, successHelper, roundNumber } from "../../utilities/helpers.js";
 import {
   loanRequestSchema,
   updateLoanRequestSchema,
@@ -57,18 +57,29 @@ const requestLoan = catchAsync(async (req, res, next) => {
 
   const loanRequest = await payload.save();
 
+  // create installments with rounded amounts. distribute any rounding remainder to last installment
   const installments = [];
-  const installmentAmount = loanRequest.totalPayableAmount / validatedData.tenureValue;
+  const rawInstallment = loanRequest.totalPayableAmount / validatedData.tenureValue;
+  const roundedInstallment = roundNumber(rawInstallment);
+  let totalAssigned = 0;
 
   for (let i = 0; i < validatedData.tenureValue; i++) {
+    // last installment gets the remainder to ensure sums match
+    const isLast = i === validatedData.tenureValue - 1;
+    const amount = isLast
+      ? roundNumber(loanRequest.totalPayableAmount - totalAssigned)
+      : roundedInstallment;
+
+    totalAssigned += amount;
+
     installments.push({
       loanId: loanRequest._id,
       userId: user._id,
-      amount: installmentAmount,
+      amount,
       dueDate: calculateDueDate(new Date(), i, validatedData.tenureType),
     });
   }
-  
+
   await InstallmentModel.insertMany(installments);
 
   return successHelper(res, loanRequest, "Loan requested successfully");
@@ -127,14 +138,14 @@ const getAllLoanRequest = catchAsync(async (req, res, next) => {
 });
 
 const updateLoanRequest = catchAsync(async (req, res, next) => {
-  const { id } = req.params;
+  const { loanId } = req.params;
   const [error, validatedData] = schemaValidator(
     req.body,
     updateLoanRequestSchema
   );
   if (error) return next(new AppError(error, 400));
 
-  const loanRequest = await LoanRequestModel.findById(id);
+  const loanRequest = await LoanRequestModel.findById(loanId);
   if (!loanRequest) return next(new AppError("Loan request not found", 404));
 
   loanRequest.status = validatedData.status;
@@ -167,80 +178,64 @@ const getLoanInstallment = catchAsync(async (req, res, next) => {
 
 
 const makePayment = catchAsync(async (req, res, next) => {
-  const { loanRequestId, installmentId} = req.body;
+  const { loanRequestId, installmentId, paymentAmount: rawPaymentAmount } = req.body;
 
-  if (!loanRequestId || !installmentId ) {
-    return next(
-      new AppError(
-        "Loan request ID, installment ID, and payment amount are required",
-        400
-      )
-    );
+  if (!loanRequestId || !installmentId) {
+    return next(new AppError("Loan request ID and installment ID are required", 400));
   }
-  
-  //approval
+
+  const paymentAmount = rawPaymentAmount === undefined ? NaN : Number(rawPaymentAmount);
+  if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
+    return next(new AppError("paymentAmount must be a positive number", 400));
+  }
 
   try {
-    const loanRequest = await LoanRequestModel.findById(loanRequestId).session(
-      session
-    );
-    if (!loanRequest) {
-      return next(new AppError("Loan request not found", 404));
-    }
+    const loanRequest = await LoanRequestModel.findById(loanRequestId);
+    if (!loanRequest) return next(new AppError("Loan request not found", 404));
 
     if (loanRequest.status !== "approved") {
-      return next(
-        new AppError("Loan must be approved before making payments", 400)
-      );
+      return next(new AppError("Loan must be approved before making payments", 400));
     }
 
-    const installment = await InstallmentModel.findById(installmentId).session(
-      session
-    );
-    if (!installment) {
-      return next(new AppError("Installment not found", 404));
-    }
+    const installment = await InstallmentModel.findById(installmentId);
+    if (!installment) return next(new AppError("Installment not found", 404));
 
-    // if (installment.loanId.toString() !== loanRequestId) {
-    //   return next(
-    //     new AppError("Installment does not belong to this loan", 400)
-    //   );
-    // }
+    if (req.user && req.user._id && installment.userId.toString() !== req.user._id.toString()) {
+      return next(new AppError("You are not authorized to pay this installment", 403));
+    }
 
     if (installment.status === "paid") {
       return next(new AppError("This installment is already paid", 400));
     }
 
-    // const installmentAmount = installment.amount;
-    // if (paymentAmount !== installmentAmount) {
-    //   return next(
-    //     new AppError(`Payment amount must be exactly ${installmentAmount}`, 400)
-    //   );
-    // }
+    const alreadyPaid = installment.paidAmount || 0;
+    const installmentRemaining = installment.amount - alreadyPaid;
 
-    // if (paymentAmount > loanRequest.remainingBalance) {
-    //   return next(
-    //     new AppError("Payment amount exceeds remaining balance", 400)
-    //   );
-    // }
+    if (paymentAmount > installmentRemaining) {
+      return next(new AppError("Payment amount exceeds remaining installment amount", 400));
+    }
 
-    installment.status = "paid";
-    installment.paidAt = new Date();
-    installment.paidAmount = paymentAmount;
-    await installment.save({ session });
+    if (paymentAmount > loanRequest.remainingBalance) {
+      return next(new AppError("Payment amount exceeds remaining loan balance", 400));
+    }
 
-    loanRequest.totalPaidAmount += paymentAmount;
-    loanRequest.remainingBalance -= paymentAmount;
+    installment.paidAmount = roundNumber(alreadyPaid + paymentAmount);
+    if (installment.paidAmount >= roundNumber(installment.amount)) {
+      installment.status = "paid";
+      installment.paidAt = new Date();
+    }
+    await installment.save();
 
-    if (loanRequest.remainingBalance <= 0.01) {
+    loanRequest.totalPaidAmount = roundNumber((loanRequest.totalPaidAmount || 0) + paymentAmount);
+    loanRequest.remainingBalance = roundNumber((loanRequest.remainingBalance || loanRequest.totalPayableAmount || 0) - paymentAmount);
+
+    if (Math.abs(loanRequest.remainingBalance) < 0.01) {
+      loanRequest.remainingBalance = 0;
       loanRequest.status = "completed";
       loanRequest.completedAt = new Date();
     }
 
-    await loanRequest.save({ session });
-
-    await session.commitTransaction();
-    session.endSession();
+    await loanRequest.save();
 
     const responseData = {
       loanRequestId: loanRequest._id,
@@ -253,8 +248,6 @@ const makePayment = catchAsync(async (req, res, next) => {
 
     return successHelper(res, responseData, "Payment processed successfully");
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
     throw error;
   }
 });

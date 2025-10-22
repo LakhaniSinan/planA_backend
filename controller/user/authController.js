@@ -144,7 +144,7 @@ const verifyOtp = catchAsync(async (req, res) => {
     {
       user: userResponse,
       token,
-      nextStep: "register",
+      nextStep: "profile-complete",
     },
     "Email verified successfully. Please complete your profile.",
     200

@@ -53,6 +53,12 @@ function calculateDueDate(startDate, i, tenureType) {
   return date;
 }
 
+// Round a number to given decimals (defaults to 2 for currency)
+function roundNumber(value, decimals = 2) {
+  if (typeof value !== 'number' || !isFinite(value)) return value;
+  return Number(value.toFixed(decimals));
+}
+
 
 export {
   successHelper,
@@ -61,4 +67,5 @@ export {
   hashPassword,
   signToken,
   calculateDueDate
+  , roundNumber
 };

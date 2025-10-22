@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { roundNumber } from "../../utilities/helpers.js";
 
 const loanRequestSchema = new mongoose.Schema(
   {
@@ -50,8 +51,8 @@ loanRequestSchema.pre("save", function (next) {
     const totalPayable =
       this.requestedAmount + this.requestedAmount * (this.interestRate / 100);
 
-    this.totalPayableAmount = totalPayable;
-    this.remainingBalance = totalPayable;
+    this.totalPayableAmount = roundNumber(totalPayable);
+    this.remainingBalance = roundNumber(totalPayable);
     this.requestId = uniqueId;
   }
   next();

@@ -4,6 +4,7 @@ import RepaymentSlip from "../../model/loanManagement/repaymentSlip.js";
 import User from "../../model/user/Model.js";
 import { successHelper, errorHelper } from "../../utilities/helpers.js";
 import sendEmail from "../../utilities/email.js";
+import catchAsync from "../../utilities/catchAsync.js";
 
 // Helper to calculate total with interest
 const calculateTotalWithInterest = (amount, interestRate) => {

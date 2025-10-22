@@ -53,7 +53,12 @@ const takeLoan = async (req, res) => {
     // Check if user has completed profile
     const user = await User.findById(req.user._id);
     if (!user.profileCompleted) {
-      return errorHelper(res, null, "Please complete your profile before applying for a loan", 400);
+      return errorHelper(
+        res,
+        null,
+        "Please complete your profile before applying for a loan",
+        400
+      );
     }
 
     const existingLoan = await Loan.findOne({
@@ -66,7 +71,9 @@ const takeLoan = async (req, res) => {
     // Get user's specific interest rate or global default
     let interestRate = user.interestRate;
     if (!interestRate) {
-      const latestInterest = await Interest.findOne().sort({ effectiveDate: -1 });
+      const latestInterest = await Interest.findOne().sort({
+        effectiveDate: -1,
+      });
       interestRate = latestInterest ? latestInterest.rate : 5; // 5% fallback
     }
 
@@ -183,7 +190,7 @@ const uploadRepaymentSlip = async (req, res) => {
     try {
       const admins = await Admin.find({ role: "admin" });
       const user = await User.findById(req.user._id);
-      const userName = user.fullName || user.name || 'User';
+      const userName = user.fullName || user.name || "User";
 
       for (const admin of admins) {
         await sendEmail(
@@ -211,7 +218,10 @@ const uploadRepaymentSlip = async (req, res) => {
 const getMyRepayments = async (req, res) => {
   try {
     const repayments = await RepaymentSlip.find({ userId: req.user._id })
-      .populate("loanId", "amount totalMonths paidMonths status availableAmount")
+      .populate(
+        "loanId",
+        "amount totalMonths paidMonths status availableAmount"
+      )
       .sort({ createdAt: -1 });
 
     if (!repayments.length)
@@ -236,18 +246,22 @@ const getCurrentInterestRate = async (req, res) => {
 
     let response = {
       globalInterestRate: globalRate,
-      effectiveDate: globalInterest?.effectiveDate
+      effectiveDate: globalInterest?.effectiveDate,
     };
 
     // If user is authenticated, also show their specific rate
     if (req.user) {
-      const user = await User.findById(req.user._id).select('interestRate');
+      const user = await User.findById(req.user._id).select("interestRate");
       response.userSpecificRate = user?.interestRate;
       response.effectiveUserRate = user?.interestRate || globalRate;
       response.isCustomRate = !!user?.interestRate;
     }
 
-    return successHelper(res, response, "Interest rate information fetched successfully");
+    return successHelper(
+      res,
+      response,
+      "Interest rate information fetched successfully"
+    );
   } catch (error) {
     return errorHelper(res, error, "Failed to fetch interest rate");
   }
@@ -259,52 +273,62 @@ const getLoanEligibility = async (req, res) => {
     const user = await User.findById(req.user._id);
 
     // Check if user has completed profile
-    if (!user.profileCompleted || !user.emailVerified) {
-      return successHelper(res, {
-        eligible: false,
-        reasons: [
-          !user.emailVerified && "Email not verified",
-          !user.profileCompleted && "Profile not completed"
-        ].filter(Boolean),
-        nextSteps: [
-          !user.emailVerified && "Verify your email address",
-          !user.profileCompleted && "Complete your profile information"
-        ].filter(Boolean)
-      }, "Loan eligibility check completed");
-    }
+    //  if (!user.profileCompleted || !user.emailVerified) {
+    //     return successHelper(res, {
+    //       eligible: false,
+    //       reasons: [
+    //         !user.emailVerified && "Email not verified",
+    //         !user.profileCompleted && "Profile not completed"
+    //       ].filter(Boolean),
+    //       nextSteps: [
+    //         !user.emailVerified && "Verify your email address",
+    //         !user.profileCompleted && "Complete your profile information"
+    //       ].filter(Boolean)
+    //     }, "Loan eligibility check completed");
+    //   }
 
     // Check for existing active loan
     const existingLoan = await Loan.findOne({
       userId: req.user._id,
-      status: "active"
+      status: "active",
     });
 
     if (existingLoan) {
-      return successHelper(res, {
-        eligible: false,
-        reasons: ["You already have an active loan"],
-        currentLoan: {
-          amount: existingLoan.amount,
-          availableAmount: existingLoan.availableAmount,
-          remainingBalance: existingLoan.remainingBalance
-        }
-      }, "Loan eligibility check completed");
+      return successHelper(
+        res,
+        {
+          eligible: false,
+          reasons: ["You already have an active loan"],
+          currentLoan: {
+            amount: existingLoan.amount,
+            availableAmount: existingLoan.availableAmount,
+            remainingBalance: existingLoan.remainingBalance,
+          },
+        },
+        "Loan eligibility check completed"
+      );
     }
 
     // User is eligible
     const globalInterest = await Interest.findOne().sort({ effectiveDate: -1 });
-    const effectiveRate = user.interestRate || globalInterest?.rate || 5;
+    const effectiveRate = user.interest || globalInterest?.rate || 5;
 
-    return successHelper(res, {
-      eligible: true,
-      interestRate: effectiveRate,
-      isCustomRate: !!user.interestRate,
-      maxLoanAmount: 100000, // You can set business logic here
-      minLoanAmount: 1000,
-      maxMonths: 60,
-      minMonths: 6
-    }, "You are eligible for a loan");
+    user.isEligible = true;
+    await user.save();
 
+    return successHelper(
+      res,
+      {
+        eligible: true,
+        interestRate: effectiveRate,
+        isCustomRate: !!user.interest,
+        maxLoanAmount: user.loanLimit,
+        minLoanAmount: 10,
+        maxMonths: 60,
+        minMonths: 6,
+      },
+      "You are eligible for a loan"
+    );
   } catch (error) {
     return errorHelper(res, error, "Failed to check loan eligibility");
   }

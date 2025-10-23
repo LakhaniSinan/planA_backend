@@ -13,7 +13,7 @@ const router = express.Router();
 
 router.post("/request-loan", verifyUser,requestLoan);
 router.get("/request-loans", getAllLoanRequest);
-router.put("/update-loan/status/:loanId",verifyAdmin, updateLoanRequest);
+router.put("/request-loan/status/:loanId",verifyAdmin, updateLoanRequest);
 router.get("/request-loan/installment/:id/:userId", getLoanInstallment);
 router.post("/make-payment",verifyUser, makePayment);
 router.get("/loan-history/:userId", verifyUser, getUserHistory);

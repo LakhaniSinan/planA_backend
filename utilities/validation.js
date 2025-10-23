@@ -37,6 +37,10 @@ const updateSettingSchema = Joi.object({
   privacy: Joi.string().optional(),
   accountNumber: Joi.string().optional(),
   contact: Joi.string().optional(),
+  aboutUs: Joi.string().optional(),
+  fbLink: Joi.string().optional(),
+  instaLink: Joi.string().optional(),
+  helpInstruction: Joi.string().optional(),
 }).unknown(false);
 
 const verifyEmailSchema = Joi.object({

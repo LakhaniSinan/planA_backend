@@ -15,6 +15,7 @@ import {
   adminChangePassword,
   updateUserByAdmin,
   adminResetPassword,
+  sendRequestAndSupport,
 } from "../../controller/user/authController.js";
 const router = express.Router();
 
@@ -35,8 +36,9 @@ router.put("/admin/update/:id", updateUserByAdmin);
 router.put("/admin/change-password/:id", adminChangePassword);
 router.put("/admin/reset-password/:id", adminResetPassword);
 router.put("/change-password/:id", changePassword);
-
+router.post("/send-request-and-support", sendRequestAndSupport);
 router.put("/update/:id", updateUser);
 router.delete("/delete/:id", verifyUser, deleteUser);
+
 
 export default router;

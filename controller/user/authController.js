@@ -162,7 +162,7 @@ const completeProfile = catchAsync(async (req, res) => {
     city,
     postalCode,
     governmentId,
-    image
+    image,
   } = req.body;
 
   const { error } = completeProfileSchema.validate(req.body);
@@ -191,7 +191,7 @@ const completeProfile = catchAsync(async (req, res) => {
       profileCompleted: true,
     },
     { new: true }
-  ).select("-password")
+  ).select("-password");
 
   const token = generateToken(updatedUser);
 
@@ -500,6 +500,28 @@ const adminResetPassword = catchAsync(async (req, res) => {
   return successHelper(res, null, "Password reset successfully", 200);
 });
 
+const sendRequestAndSupport = catchAsync(async (req, res) => {
+  const { email, message, subject } = req.body;
+  const emailContent = `
+Support Request Details:
+=======================
+
+From Email: ${email}
+Subject: ${subject || "Request and Support"}
+
+Message:
+--------
+${message}
+
+---`;
+  await sendEmail(
+    "sinan.lakhani09@gmail.com",
+    `Support Request from ${email}`,
+    emailContent
+  );
+  return successHelper(res, null, "Request and Support sent successfully", 200);
+});
+
 export {
   registerUser,
   verifyOtp,
@@ -516,4 +538,5 @@ export {
   updateUserByAdmin,
   adminChangePassword,
   adminResetPassword,
+  sendRequestAndSupport,
 };

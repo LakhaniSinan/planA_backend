@@ -11,3 +11,5 @@ node_modules
 .env.development.local
 .env.test.local
 .env.production.local   
+
+plan-a-9c87a-firebase-adminsdk-fbsvc-00c4eab8ac.json    

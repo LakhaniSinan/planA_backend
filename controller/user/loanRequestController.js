@@ -282,14 +282,14 @@ const makePayment = catchAsync(async (req, res, next) => {
     installment.slipUrl = slipUrl;
     await installment.save();
 
-    const oldLoanStatus = loanRequest.status; 
+    const oldLoanStatus = loanRequest.status;
 
     loanRequest.totalPaidAmount = roundNumber(
       (loanRequest.totalPaidAmount || 0) + paymentAmount
     );
     loanRequest.remainingBalance = roundNumber(
       (loanRequest.remainingBalance || loanRequest.totalPayableAmount || 0) -
-        paymentAmount
+      paymentAmount
     );
 
     if (Math.abs(loanRequest.remainingBalance) < 0.01) {
@@ -331,6 +331,17 @@ const makePayment = catchAsync(async (req, res, next) => {
   }
 });
 
+
+const fetchAllLoans = catchAsync(async (req, res, next) => {
+  const { userId } = req.params;
+  try {
+    const allLoans = await LoanRequestModel.find({ userId })
+    return successHelper(res, allLoans, "All Loans fetched");
+  } catch (error) {
+    throw error;
+  }
+})
+
 export {
   requestLoan,
   getAllLoanRequest,
@@ -338,4 +349,5 @@ export {
   getLoanInstallment,
   makePayment,
   getUserHistory,
+  fetchAllLoans
 };

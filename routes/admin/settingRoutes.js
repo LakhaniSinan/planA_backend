@@ -9,6 +9,6 @@ const router = express.Router();
 
 router.post("/create", createSetting);
 router.get("/fetch", getSettings);
-router.put("/:id", updateSetting);
+router.put("/fetch/:id", updateSetting);
 
 export default router;

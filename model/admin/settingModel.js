@@ -6,6 +6,10 @@ const settingSchema = new mongoose.Schema(
     privacy: { type: String, required: true },
     accountNumber: { type: String, required: true },
     contact: { type: String, required: true },
+    aboutUs: { type: String, required: true },
+    fbLink: { type: String, default: "" },
+    instaLink: { type: String, default: "" },
+    helpInstruction: { type: String, default: "" }
   },
   { timestamps: true, collection: "setting" }
 );

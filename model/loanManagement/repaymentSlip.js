@@ -26,10 +26,10 @@ const repaymentSlipSchema = new mongoose.Schema(
       type: Date,
     },
     paidAmount: { type: Number },
-    slipUrl: { type: String },
+    slipUrl: { type: String, default: "" },
     uploadDate: { type: Date },
   },
-  { timestamps: true, collection: "repayment_slip" }
+  { timestamps: true, collection: "installments" }
 );
 
 export default mongoose.model("RepaymentSlip", repaymentSlipSchema);

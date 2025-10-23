@@ -1,7 +1,7 @@
 import catchAsync from "../../utilities/catchAsync.js";
 import SettingModel from "../../model/admin/settingModel.js";
 import { schemaValidator } from "../../middleware/schemaMiddleware.js";
-import { successHelper } from "../../utilities/helpers.js";
+import { errorHelper, successHelper } from "../../utilities/helpers.js";
 import { AppError } from "../../middleware/errorMiddleware.js";
 import { updateSettingSchema } from "../../utilities/validation.js";
 
@@ -22,9 +22,14 @@ const updateSetting = catchAsync(async (req, res, next) => {
 });
 
 const getSettings = catchAsync(async (req, res) => {
-  const select = req.query.select || "";
-  const settings = await SettingModel.findOne().select(select);
-  successHelper(res, settings, "Settings fetched successfully");
+  try {
+    const select = req.query.select || "";
+    const settings = await SettingModel.findOne()
+    successHelper(res, settings, "Settings fetched successfully");
+  }
+  catch (error) {
+    errorHelper(res, error, error);
+  }
 });
 
 export { createSetting, updateSetting, getSettings };

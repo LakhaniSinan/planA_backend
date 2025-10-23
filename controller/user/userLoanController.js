@@ -1,24 +1,41 @@
 import Loan from "../../model/loanManagement/loanModel.js";
-import RepaymentSlip from "../../model/loanManagement/repaymentSlip.js";
+import LoanRequest from "../../model/user/loanRequestModel.js";
+import Installment from "../../model/loanManagement/repaymentSlip.js";
 import Interest from "../../model/loanManagement/intrestModel.js";
 import User from "../../model/user/Model.js";
 import { successHelper, errorHelper } from "../../utilities/helpers.js";
 import Admin from "../../model/admin/Model.js";
 import sendEmail from "../../utilities/email.js";
+import mongoose from "mongoose"
 
 // Get current active loan
 const getMyCurrentLoan = async (req, res) => {
   try {
-    const loan = await Loan.findOne({
-      userId: req.user._id,
-      status: "active",
-    }).populate("userId", "name fullName email image");
+    console.log(req.user._id, "req.user._idreq.user._idreq.user._id");
+
+    const userObjectId = new mongoose.Types.ObjectId(req.user._id);
+
+    const loan = await LoanRequest.findOne({
+      userId: userObjectId,
+      status: { $ne: "rejected" }, // exclude rejected loans
+    })
+      .populate("userId", "name fullName email image")
+      .sort({ createdAt: -1 });
 
     if (!loan) return errorHelper(res, null, "No active loan found", 404);
+    const installments = await Installment.find({ loanId: loan._id }).sort({
+      dueDate: 1, // optional: sort by due date ascending
+    });
+    const nextInstallment = installments.find(
+      (inst) => inst.status === "pending"
+    );
+    console.log(installments, "installmentsinstallmentsinstallments");
 
     const response = {
       ...loan.toObject(),
-      availableAmount: loan.availableAmount, // Include available amount
+      installments,
+      availableAmount: loan.availableAmount,
+      nextInstallment: nextInstallment || null, // Include available amount
       completionDate:
         loan.paidMonths >= loan.totalMonths ? loan.completionDate : "-",
     };
@@ -179,7 +196,7 @@ const uploadRepaymentSlip = async (req, res) => {
         403
       );
 
-    const repayment = await RepaymentSlip.create({
+    const repayment = await Installment.create({
       loanId,
       userId: req.user._id,
       amount,
@@ -217,7 +234,7 @@ const uploadRepaymentSlip = async (req, res) => {
 // Get repayment history
 const getMyRepayments = async (req, res) => {
   try {
-    const repayments = await RepaymentSlip.find({ userId: req.user._id })
+    const repayments = await Installment.find({ userId: req.user._id })
       .populate(
         "loanId",
         "amount totalMonths paidMonths status availableAmount"

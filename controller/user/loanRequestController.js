@@ -15,6 +15,7 @@ import {
 } from "../../utilities/validation.js";
 import { schemaValidator } from "../../middleware/schemaMiddleware.js";
 import mongoose from "mongoose";
+import { sendNotification } from "../../utilities/notification.js"
 
 const requestLoan = catchAsync(async (req, res, next) => {
   const [error, validatedData] = schemaValidator(req.body, loanRequestSchema);
@@ -207,6 +208,17 @@ const getLoanInstallment = catchAsync(async (req, res, next) => {
 });
 
 const makePayment = catchAsync(async (req, res, next) => {
+
+  const payload = {
+    message: {
+      token: "eNN7d9lLQb-vO9SS-ALsdG:APA91bE6TCCRc5JVaMld2kbCTHNYXsIZmyh5Y2r8foTBzbp_T-xqpeWjl-LZcL4Xf1AxyB5m0fkmN6pYImAv7hrqWQYr9WM3mZWs7gZJurUGzn-6W4nzzPs",
+      notification: {
+        title: "Loan Paid",
+        body: `Loan Paid`,
+      },
+    },
+  };
+  sendNotification(payload);
   const {
     loanRequestId,
     installmentId,
@@ -310,6 +322,8 @@ const makePayment = catchAsync(async (req, res, next) => {
     }
 
     const newInstallmentRemaining = roundNumber(installment.amount - installment.paidAmount);
+
+
 
     const responseData = {
       loanRequestId: loanRequest._id,

@@ -16,6 +16,7 @@ import {
 import { schemaValidator } from "../../middleware/schemaMiddleware.js";
 import mongoose from "mongoose";
 import { sendNotification } from "../../utilities/notification.js"
+import NotificationModel from "../../model/user/notificationModel.js"
 
 const requestLoan = catchAsync(async (req, res, next) => {
   const [error, validatedData] = schemaValidator(req.body, loanRequestSchema);
@@ -89,6 +90,20 @@ const requestLoan = catchAsync(async (req, res, next) => {
 
   await InstallmentModel.insertMany(installments);
 
+  await NotificationModel.create({
+    userId: user._id,
+    title: "Loan Request Submitted",
+    message: `Your loan request of ${validatedData.amount.toLocaleString()} has been submitted.`,
+    type: "loan",
+  });
+
+  if (user.fcm) {
+    sendNotification({
+      token: user.fcm,
+      title: "Loan Request Submitted ✅",
+      body: `Your loan request of ${validatedData.amount.toLocaleString()} has been successfully submitted.`,
+    });
+  }
   return successHelper(res, loanRequest, "Loan requested successfully");
 });
 

@@ -35,16 +35,14 @@ async function getAccessToken() {
 
 export const sendNotification = async (payload) => {
   console.log(payload, "payloadpayloadpayloadpayload");
-
   try {
     const token = await getAccessToken();
-
     const headers = {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     };
 
-    const response = await axios.post(fcmUrl, payload, { headers });
+    const response = await axios.post(payload.token, payload, { headers });
     console.log("✅ Notification sent successfully:", response.data);
   } catch (error) {
     console.error("❌ Error sending notification:", error?.response?.data || error);

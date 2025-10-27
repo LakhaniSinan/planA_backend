@@ -10,13 +10,6 @@ const notificationSchema = new mongoose.Schema(
     },
     title: { type: String, required: true },
     message: { type: String, required: true },
-    type: { 
-      type: String, 
-      enum: ["loan_approved", "payment_due", "payment_received", "general", "system"], 
-      default: "general" 
-    },
-    isRead: { type: Boolean, default: false },
-    readAt: { type: Date },
   },
   { timestamps: true }
 );

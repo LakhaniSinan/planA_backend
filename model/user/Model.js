@@ -7,6 +7,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    fcm: {
+      type: String,
+      default: ""
+    },
     password: { type: String, select: false },
     contactNumber: { type: String },
     image: { type: String, default: "" },
@@ -28,11 +32,11 @@ const userSchema = new mongoose.Schema(
     isNotification: { type: Boolean, default: true },
     history: [
       {
-        title: { type: String }, 
-        message: { type: String }, 
-        amount: { type: Number }, 
-        loanId: { type: mongoose.Schema.Types.ObjectId, ref: "LoanRequest" }, 
-        status: { type: String }, 
+        title: { type: String },
+        message: { type: String },
+        amount: { type: Number },
+        loanId: { type: mongoose.Schema.Types.ObjectId, ref: "LoanRequest" },
+        status: { type: String },
         createdAt: { type: Date, default: Date.now },
       },
     ],

@@ -26,7 +26,7 @@ import {
 import { generateOtp, hashOtp } from "../../utilities/otp.js";
 
 const registerUser = catchAsync(async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, fcm } = req.body;
 
   const { error } = registerUserSchema.validate({
     email,
@@ -207,8 +207,8 @@ const completeProfile = catchAsync(async (req, res) => {
 });
 
 const loginUser = catchAsync(async (req, res) => {
-  const { email, password } = req.body;
-
+  const { email, password, fcm } = req.body;
+  console.log(req.body,"req.bodyreq.bodyreq.body");
   const { error } = loginUserSchema.validate({ email, password });
   if (error) return errorHelper(res, null, error.details[0].message, 400);
 
@@ -220,11 +220,17 @@ const loginUser = catchAsync(async (req, res) => {
     return errorHelper(res, null, "Invalid credentials", 401);
   }
 
-  if (!user.profileCompleted) {
-    const token = generateToken(user);
-    const userResponse = user.toObject();
-    delete userResponse.password;
+  // ✅ Update FCM if provided
+  if (fcm && user.fcm !== fcm) {
+    user.fcm = fcm;
+    await user.save();
+  }
 
+  const token = generateToken(user);
+  const userResponse = user.toObject();
+  delete userResponse.password;
+
+  if (!user.profileCompleted) {
     return successHelper(
       res,
       {
@@ -236,10 +242,6 @@ const loginUser = catchAsync(async (req, res) => {
       200
     );
   }
-
-  const token = generateToken(user);
-  const userResponse = user.toObject();
-  delete userResponse.password;
 
   return successHelper(
     res,

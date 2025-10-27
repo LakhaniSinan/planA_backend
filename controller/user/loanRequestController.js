@@ -100,7 +100,7 @@ const requestLoan = catchAsync(async (req, res, next) => {
   if (user.fcm) {
     sendNotification({
       token: user.fcm,
-      title: "Loan Request Submitted ✅",
+      title: "Loan Request Submitted",
       body: `Your loan request of ${validatedData.amount.toLocaleString()} has been successfully submitted.`,
     });
   }

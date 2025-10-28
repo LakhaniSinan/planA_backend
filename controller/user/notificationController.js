@@ -1,16 +1,15 @@
 import Notification from "../../model/user/notificationModel.js";
 import { successHelper, errorHelper } from "../../utilities/helpers.js";
 
-// Get all notifications for the logged-in user
 const getMyNotifications = async (req, res) => {
   try {
     const notifications = await Notification.find({ userId: req.user._id })
       .sort({ createdAt: -1 })
-      .limit(50); // limit to last 50 notifications
+      .limit(50);
 
     return successHelper(
-      res, 
-      notifications, 
+      res,
+      notifications,
       "Notifications fetched successfully"
     );
   } catch (error) {

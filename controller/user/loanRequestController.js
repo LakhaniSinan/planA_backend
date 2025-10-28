@@ -263,6 +263,12 @@ const makePayment = catchAsync(async (req, res, next) => {
     const loanRequest = await LoanRequestModel.findById(loanRequestId);
     if (!loanRequest) return next(new AppError("Loan request not found", 404));
 
+      if (loanRequest.status === "completed") {
+      return next(
+        new AppError("Loan has been paid", 400)
+      );
+    }
+
     if (loanRequest.status !== "approved") {
       return next(
         new AppError("Loan must be approved before making payments", 400)
@@ -367,8 +373,8 @@ const makePayment = catchAsync(async (req, res, next) => {
 const fetchAllLoans = catchAsync(async (req, res, next) => {
   const { userId } = req.params;
   try {
-    const allLoans = await LoanRequestModel.find({ userId })
-    return successHelper(res, allLoans, "All Loans fetched");
+const allLoans = await LoanRequestModel.findOne({ userId })
+    return successHelper(res, allLoans , "All Loans fetched");
   } catch (error) {
     throw error;
   }

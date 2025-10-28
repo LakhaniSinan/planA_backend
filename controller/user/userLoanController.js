@@ -8,40 +8,171 @@ import Admin from "../../model/admin/Model.js";
 import sendEmail from "../../utilities/email.js";
 import mongoose from "mongoose"
 
-// Get current active loan
 const getMyCurrentLoan = async (req, res) => {
   try {
-    console.log(req.user._id, "req.user._idreq.user._idreq.user._id");
+    console.log("========== GET MY CURRENT LOAN START ==========");
+    console.log("User ID:", req.user._id);
+    console.log("Request Time:", new Date().toISOString());
 
     const userObjectId = new mongoose.Types.ObjectId(req.user._id);
+    console.log("User ObjectId created:", userObjectId);
 
+    console.log("Fetching loan from database...");
     const loan = await LoanRequest.findOne({
       userId: userObjectId,
-      status: { $ne: "rejected" }, // exclude rejected loans
     })
       .populate("userId", "name fullName email image")
       .sort({ createdAt: -1 });
 
-    if (!loan) return errorHelper(res, null, "No active loan found", 404);
-    const installments = await Installment.find({ loanId: loan._id }).sort({
-      dueDate: 1, // optional: sort by due date ascending
-    });
-    const nextInstallment = installments.find(
-      (inst) => inst.status === "pending"
-    );
-    console.log(installments, "installmentsinstallmentsinstallments");
+    console.log("Loan query completed");
+    console.log("Loan found:", loan ? "YES" : "NO");
 
-    const response = {
-      ...loan.toObject(),
-      installments,
-      availableAmount: loan.availableAmount,
-      nextInstallment: nextInstallment || null, // Include available amount
-      completionDate:
-        loan.paidMonths >= loan.totalMonths ? loan.completionDate : "-",
-    };
+    if (!loan) {
+      console.log("No loan found for user");
+      console.log("========== GET MY CURRENT LOAN END (NO LOAN) ==========");
+      return successHelper(res, null, "Sorry, No loans found!", 200);
+    }
 
-    return successHelper(res, response, "Current loan fetched successfully");
+    console.log("Loan Details:");
+    console.log("- Loan ID:", loan._id);
+    console.log("- Request ID:", loan.requestId);
+    console.log("- Status:", loan.status);
+    console.log("- Requested Amount:", loan.requestedAmount);
+    console.log("- Total Payable Amount:", loan.totalPayableAmount);
+    console.log("- Created At:", loan.createdAt);
+    console.log("- Approved At:", loan.approvedAt);
+    console.log("- Rejected At:", loan.rejectedAt);
+    console.log("- Completed At:", loan.completedAt);
+
+    console.log("Processing loan based on status:", loan.status);
+
+    switch (loan.status) {
+      case "pending":
+        console.log("CASE: PENDING - Loan is awaiting approval");
+        const pendingResponse = {
+          status: "pending",
+          loan: {
+            _id: loan._id,
+            requestId: loan.requestId,
+            status: loan.status,
+          },
+        };
+        console.log("Pending response:", JSON.stringify(pendingResponse, null, 2));
+        console.log("========== GET MY CURRENT LOAN END (PENDING) ==========");
+        return successHelper(
+          res,
+          pendingResponse,
+          "Your loan application is pending approval",
+          200
+        );
+
+      case "rejected":
+        console.log("CASE: REJECTED - Loan application was rejected");
+        console.log("Rejected At:", loan.rejectedAt);
+        console.log("========== GET MY CURRENT LOAN END (REJECTED) ==========");
+        return successHelper(
+          res,
+          null,
+          "Your loan application was rejected. You have no active or pending loans",
+          200
+        );
+
+      case "completed":
+        console.log("CASE: COMPLETED - Loan has been fully paid");
+        const completedResponse = {
+          status: "completed",
+          loan: {
+            _id: loan._id,
+            requestId: loan.requestId,
+            status: loan.status,
+            completedAt: loan.completedAt,
+          },
+        };
+        console.log("Completed response:", JSON.stringify(completedResponse, null, 2));
+        console.log("========== GET MY CURRENT LOAN END (COMPLETED) ==========");
+        return successHelper(
+          res,
+          completedResponse,
+          "Your loan has been completed"
+        );
+
+      case "approved":
+        console.log("CASE: APPROVED - Fetching loan details and installments");
+        console.log("Fetching installments for loan ID:", loan._id);
+        
+        const installments = await Installment.find({ loanId: loan._id }).sort({
+          dueDate: 1,
+        });
+
+        console.log("Installments found:", installments.length);
+        console.log("Raw installments:", JSON.stringify(installments, null, 2));
+
+        console.log("Calculating correct due dates for installments...");
+        const loanStartDate = loan.approvedAt ? new Date(loan.approvedAt) : new Date();
+        console.log("Loan Start Date (approvedAt):", loanStartDate.toISOString());
+
+        const installmentsWithCorrectDates = installments.map((inst, index) => {
+          const instObj = inst.toObject();
+          
+          const correctDueDate = new Date(loanStartDate);
+          correctDueDate.setMonth(correctDueDate.getMonth() + (index + 1));
+          
+          console.log(`Installment ${index + 1}:`);
+          console.log(`  - Installment ID: ${instObj._id}`);
+          console.log(`  - Original Due Date: ${instObj.dueDate}`);
+          console.log(`  - Calculated Due Date: ${correctDueDate.toISOString()}`);
+          console.log(`  - Status: ${instObj.status}`);
+          console.log(`  - Amount: ${instObj.amount}`);
+          
+          return {
+            ...instObj,
+            dueDate: correctDueDate,
+            calculatedDueDate: correctDueDate,
+          };
+        });
+
+        console.log("Finding next pending installment...");
+        const nextInstallment = installmentsWithCorrectDates.find(
+          (inst) => inst.status === "pending"
+        );
+
+        if (nextInstallment) {
+          console.log("Next pending installment found:");
+          console.log("  - ID:", nextInstallment._id);
+          console.log("  - Due Date:", nextInstallment.dueDate);
+          console.log("  - Amount:", nextInstallment.amount);
+        } else {
+          console.log("No pending installments found");
+        }
+
+        console.log("All installments with corrected dates:", JSON.stringify(installmentsWithCorrectDates, null, 2));
+
+        const response = {
+          ...loan.toObject(),
+          installments: installmentsWithCorrectDates,
+          availableAmount: loan.availableAmount,
+          nextInstallment: nextInstallment || null,
+        };
+
+        console.log("Final approved loan response prepared");
+        console.log("Response summary:");
+        console.log("  - Total installments:", installmentsWithCorrectDates.length);
+        console.log("  - Available amount:", loan.availableAmount);
+        console.log("  - Has next installment:", !!nextInstallment);
+        console.log("========== GET MY CURRENT LOAN END (APPROVED) ==========");
+        
+        return successHelper(res, response, "Current loan fetched successfully");
+
+      default:
+        console.log("CASE: UNKNOWN STATUS -", loan.status);
+        console.log("========== GET MY CURRENT LOAN END (INVALID STATUS) ==========");
+        return errorHelper(res, null, "Invalid loan status", 400);
+    }
   } catch (error) {
+    console.error("========== ERROR IN GET MY CURRENT LOAN ==========");
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
+    console.error("========== ERROR END ==========");
     return errorHelper(res, error, "Failed to fetch current loan");
   }
 };

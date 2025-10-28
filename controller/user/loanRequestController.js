@@ -191,7 +191,7 @@ const updateLoanRequest = catchAsync(async (req, res, next) => {
   const user = await User.findById(loanRequest.userId);
   if (user?.fcm) {
     let title = "Loan Status Updated";
-    let body = "";
+    let body = `Your loan status has been updated.${validatedData.status}`;
 
     if (validatedData.status === "approved") {
       body = `Your loan request of ${loanRequest.requestedAmount} has been approved.`;

@@ -181,10 +181,41 @@ const updateLoanRequest = catchAsync(async (req, res, next) => {
   } else if (validatedData.status === "rejected") {
     loanRequest.rejectedAt = new Date();
   } else if (validatedData.status === "completed") {
+
     loanRequest.completedAt = new Date();
   }
 
+
   await loanRequest.save();
+
+  const user = await User.findById(loanRequest.userId);
+  if (user?.fcm) {
+    let title = "Loan Status Updated";
+    let body = "";
+
+    if (validatedData.status === "approved") {
+      body = `Your loan request of ${loanRequest.requestedAmount} has been approved.`;
+    } else if (validatedData.status === "rejected") {
+      body = `Your loan request has been rejected.`;
+    } else if (validatedData.status === "completed") {
+      body = `Your loan has been marked as completed.`;
+    }
+    else {
+
+    }
+
+    await NotificationModel.create({
+      userId: user._id,
+      title: title,
+      message: body,
+      type: "loan",
+    });
+    sendNotification({
+      token: user.fcm,
+      title,
+      body
+    });
+  }
 
   if (oldStatus !== validatedData.status) {
     await addLoanHistoryEntry(
@@ -263,7 +294,7 @@ const makePayment = catchAsync(async (req, res, next) => {
     const loanRequest = await LoanRequestModel.findById(loanRequestId);
     if (!loanRequest) return next(new AppError("Loan request not found", 404));
 
-      if (loanRequest.status === "completed") {
+    if (loanRequest.status === "completed") {
       return next(
         new AppError("Loan has been paid", 400)
       );
@@ -372,13 +403,27 @@ const makePayment = catchAsync(async (req, res, next) => {
 
 const fetchAllLoans = catchAsync(async (req, res, next) => {
   const { userId } = req.params;
+
   try {
-const allLoans = await LoanRequestModel.findOne({ userId })
-    return successHelper(res, allLoans , "All Loans fetched");
+    // Fetch all loans of the user
+    const allLoans = await LoanRequestModel.find({ userId });
+
+    // Separate based on status
+    const pendingLoans = allLoans.filter(loan => loan.status === "pending");
+    const activeOrCompletedLoans = allLoans.filter(
+      loan => loan.status === "approved" || loan.status === "completed"
+    );
+
+    return successHelper(res, {
+      pendingLoans,
+      activeOrCompletedLoans
+    }, "Loans fetched successfully");
+
   } catch (error) {
-    throw error;
+    next(error);
   }
-})
+});
+
 
 export {
   requestLoan,

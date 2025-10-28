@@ -1,7 +1,7 @@
 import admin from "./firebaseConfig.js";
 import { google } from "googleapis";
 import axios from "axios";
-import serviceAccount from "../plan-a-9c87a-firebase-adminsdk-fbsvc-00c4eab8ac.json" with { type: "json" };
+import serviceAccount from "../plan-a-9c87a-firebase-adminsdk-fbsvc-2d7611d41e.json" with { type: "json" };
 
 const fcmUrl = "https://fcm.googleapis.com/v1/projects/plan-a-9c87a/messages:send";
 
@@ -11,8 +11,8 @@ async function getAccessToken() {
   return new Promise((resolve, reject) => {
     // Make sure the private key newlines are formatted correctly
     const privateKey = serviceAccount.private_key.replace(/\\n/g, "\n");
-    console.log(privateKey,serviceAccount.client_email,"privateKeyprivateKeyprivateKey");
-    
+    console.log(privateKey, serviceAccount.client_email, "privateKeyprivateKeyprivateKey");
+
     const jwtClient = new google.auth.JWT(
       serviceAccount.client_email,
       null,
@@ -42,7 +42,13 @@ export const sendNotification = async (payload) => {
       "Content-Type": "application/json",
     };
 
-    const response = await axios.post(payload.token, payload, { headers });
+    const params = {
+      title: payload.title,
+      body: payload.body
+    }
+    console.log(payload, params, "paramsparamsparams");
+
+    const response = await axios.post(payload.token, params, { headers });
     console.log("✅ Notification sent successfully:", response.data);
   } catch (error) {
     console.error("❌ Error sending notification:", error?.response?.data || error);

@@ -24,6 +24,8 @@ const requestLoan = catchAsync(async (req, res, next) => {
 
   const user = req.user;
 
+
+
   if (user.isEligible === false) {
     return next(
       new AppError(
@@ -104,6 +106,7 @@ const requestLoan = catchAsync(async (req, res, next) => {
       body: `Your loan request of ${validatedData.amount.toLocaleString()} has been successfully submitted.`,
     });
   }
+
   return successHelper(res, loanRequest, "Loan requested successfully");
 });
 

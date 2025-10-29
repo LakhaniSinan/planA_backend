@@ -16,6 +16,8 @@ import {
   updateUserByAdmin,
   adminResetPassword,
   sendRequestAndSupport,
+  googleLogin,
+  updateFcmToken,
 } from "../../controller/user/authController.js";
 const router = express.Router();
 
@@ -39,6 +41,8 @@ router.put("/change-password/:id", changePassword);
 router.post("/send-request-and-support", sendRequestAndSupport);
 router.put("/update/:id", updateUser);
 router.delete("/delete/:id", verifyUser, deleteUser);
+router.post("/google-login", googleLogin);
+router.put("/update-fcm/:id", updateFcmToken);
 
 
 export default router;

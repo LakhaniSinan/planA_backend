@@ -23,7 +23,7 @@ const requestLoan = catchAsync(async (req, res, next) => {
   if (error) return next(new AppError(error, 400));
 
   const user = req.user;
-
+  
 
 
   if (user.isEligible === false) {
@@ -99,13 +99,15 @@ const requestLoan = catchAsync(async (req, res, next) => {
     type: "loan",
   });
 
-  if (user.fcm) {
+    console.log(user.fcm, "user.fcmuser.fcmuser.fcm");
+// if (user.fcm) {
+  
     sendNotification({
-      token: user.fcm,
+      token: "eNN7d9lLQb-vO9SS-ALsdG:APA91bE6TCCRc5JVaMld2kbCTHNYXsIZmyh5Y2r8foTBzbp_T-xqpeWjl-LZcL4Xf1AxyB5m0fkmN6pYImAv7hrqWQYr9WM3mZWs7gZJurUGzn-6W4nzzPs",
       title: "Loan Request Submitted",
       body: `Your loan request of ${validatedData.amount.toLocaleString()} has been successfully submitted.`,
     });
-  }
+  
 
   return successHelper(res, loanRequest, "Loan requested successfully");
 });

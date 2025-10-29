@@ -1,4 +1,5 @@
 import Joi from "joi";
+import { OAuth2Client } from 'google-auth-library';
 import User from "../../model/user/Model.js";
 import Interest from "../../model/loanManagement/intrestModel.js";
 import sendEmail from "../../utilities/email.js";
@@ -524,6 +525,94 @@ ${message}
   return successHelper(res, null, "Request and Support sent successfully", 200);
 });
 
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+const verifyGoogleToken = async (idToken) => {
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    return ticket.getPayload();
+  } catch (error) {
+    throw new Error(`Invalid ID token: ${error.message}`);
+  }
+};
+
+const googleLogin = catchAsync(async (req, res) => {
+  const { idToken, fcmToken } = req.body;
+
+  if (!idToken) {
+    return errorHelper(res, null, "ID token is required", 400);
+  }
+
+  const payload = await verifyGoogleToken(idToken);
+  const { email, name, picture } = payload;
+
+  let user = await User.findOne({ email });
+
+  if (user) {
+    if (fcmToken && user.fcm !== fcmToken) {
+      user.fcm = fcmToken;
+      await user.save();
+    }
+
+    const token = generateToken(user);
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
+    return successHelper(
+      res,
+      { user: userResponse, token },
+      "Login successful",
+      200
+    );
+  }
+
+  const newUser = await User.create({
+    email,
+    name,
+    image: picture || "",
+    fcm: fcmToken || "",
+    profileCompleted: true,
+    otpVerified: true,
+    isEligible: false,
+    password: undefined,
+  });
+
+  const token = generateToken(newUser);
+  const userResponse = newUser.toObject();
+  delete userResponse.password;
+
+  return successHelper(
+    res,
+    { user: userResponse, token, isNewUser: true },
+    "User created and logged in successfully",
+    201
+  );
+});
+
+const updateFcmToken = catchAsync(async (req, res) => {
+  const { fcmToken } = req.body;
+
+  if (!fcmToken) {
+    return errorHelper(res, null, "FCM token is required", 400);
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    { fcm: fcmToken },
+    { new: true }
+  ).select("-password");
+
+  if (!user) {
+    return errorHelper(res, null, "User not found", 404);
+  }
+
+  return successHelper(res, { user }, "FCM token updated successfully", 200);
+});
+
+
 export {
   registerUser,
   verifyOtp,
@@ -541,4 +630,7 @@ export {
   adminChangePassword,
   adminResetPassword,
   sendRequestAndSupport,
+  googleLogin,
+  updateFcmToken,
+
 };

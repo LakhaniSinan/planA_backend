@@ -625,15 +625,15 @@ const googleLogin = catchAsync(async (req, res) => {
 });
 
 const updateFcmToken = catchAsync(async (req, res) => {
-  const { fcmToken } = req.body;
+  const { fcm } = req.body;
 
-  if (!fcmToken) {
+  if (!fcm) {
     return errorHelper(res, null, "FCM token is required", 400);
   }
 
   const user = await User.findByIdAndUpdate(
     req.user._id,
-    { fcm: fcmToken },
+    { fcm },
     { new: true }
   ).select("-password");
 

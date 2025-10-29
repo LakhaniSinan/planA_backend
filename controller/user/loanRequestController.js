@@ -15,16 +15,14 @@ import {
 } from "../../utilities/validation.js";
 import { schemaValidator } from "../../middleware/schemaMiddleware.js";
 import mongoose from "mongoose";
-import { sendNotification } from "../../utilities/notification.js"
-import NotificationModel from "../../model/user/notificationModel.js"
+import { sendNotification } from "../../utilities/notification.js";
+import NotificationModel from "../../model/user/notificationModel.js";
 
 const requestLoan = catchAsync(async (req, res, next) => {
   const [error, validatedData] = schemaValidator(req.body, loanRequestSchema);
   if (error) return next(new AppError(error, 400));
 
   const user = req.user;
-  
-
 
   if (user.isEligible === false) {
     return next(
@@ -99,15 +97,22 @@ const requestLoan = catchAsync(async (req, res, next) => {
     type: "loan",
   });
 
-    console.log(user.fcm, "user.fcmuser.fcmuser.fcm");
-// if (user.fcm) {
-  
-    sendNotification({
-      token: "eNN7d9lLQb-vO9SS-ALsdG:APA91bE6TCCRc5JVaMld2kbCTHNYXsIZmyh5Y2r8foTBzbp_T-xqpeWjl-LZcL4Xf1AxyB5m0fkmN6pYImAv7hrqWQYr9WM3mZWs7gZJurUGzn-6W4nzzPs",
-      title: "Loan Request Submitted",
-      body: `Your loan request of ${validatedData.amount.toLocaleString()} has been successfully submitted.`,
-    });
-  
+  // Send push notification if user has FCM token
+  if (user.fcm) {
+    try {
+      await sendNotification({
+        token: user.fcm,
+        title: "Loan Request Submitted",
+        body: `Your loan request of ${validatedData.amount.toLocaleString()} has been successfully submitted.`,
+      });
+    } catch (error) {
+      // Log error but don't break the request flow
+      console.error(
+        "Failed to send push notification:",
+        error?.response?.data?.error?.message || error.message
+      );
+    }
+  }
 
   return successHelper(res, loanRequest, "Loan requested successfully");
 });
@@ -183,10 +188,8 @@ const updateLoanRequest = catchAsync(async (req, res, next) => {
   } else if (validatedData.status === "rejected") {
     loanRequest.rejectedAt = new Date();
   } else if (validatedData.status === "completed") {
-
     loanRequest.completedAt = new Date();
   }
-
 
   await loanRequest.save();
 
@@ -201,9 +204,7 @@ const updateLoanRequest = catchAsync(async (req, res, next) => {
       body = `Your loan request has been rejected.`;
     } else if (validatedData.status === "completed") {
       body = `Your loan has been marked as completed.`;
-    }
-    else {
-
+    } else {
     }
 
     await NotificationModel.create({
@@ -212,11 +213,23 @@ const updateLoanRequest = catchAsync(async (req, res, next) => {
       message: body,
       type: "loan",
     });
-    sendNotification({
-      token: user.fcm,
-      title,
-      body
-    });
+
+    // Send push notification if user has FCM token
+    if (user.fcm) {
+      try {
+        await sendNotification({
+          token: user.fcm,
+          title,
+          body,
+        });
+      } catch (error) {
+        // Log error but don't break the request flow
+        console.error(
+          "Failed to send push notification:",
+          error?.response?.data?.error?.message || error.message
+        );
+      }
+    }
   }
 
   if (oldStatus !== validatedData.status) {
@@ -259,17 +272,6 @@ const getLoanInstallment = catchAsync(async (req, res, next) => {
 });
 
 const makePayment = catchAsync(async (req, res, next) => {
-
-  const payload = {
-    message: {
-      token: "eNN7d9lLQb-vO9SS-ALsdG:APA91bE6TCCRc5JVaMld2kbCTHNYXsIZmyh5Y2r8foTBzbp_T-xqpeWjl-LZcL4Xf1AxyB5m0fkmN6pYImAv7hrqWQYr9WM3mZWs7gZJurUGzn-6W4nzzPs",
-      notification: {
-        title: "Loan Paid",
-        body: `Loan Paid`,
-      },
-    },
-  };
-  sendNotification(payload);
   const {
     loanRequestId,
     installmentId,
@@ -297,9 +299,7 @@ const makePayment = catchAsync(async (req, res, next) => {
     if (!loanRequest) return next(new AppError("Loan request not found", 404));
 
     if (loanRequest.status === "completed") {
-      return next(
-        new AppError("Loan has been paid", 400)
-      );
+      return next(new AppError("Loan has been paid", 400));
     }
 
     if (loanRequest.status !== "approved") {
@@ -358,7 +358,7 @@ const makePayment = catchAsync(async (req, res, next) => {
     );
     loanRequest.remainingBalance = roundNumber(
       (loanRequest.remainingBalance || loanRequest.totalPayableAmount || 0) -
-      paymentAmount
+        paymentAmount
     );
 
     if (Math.abs(loanRequest.remainingBalance) < 0.01) {
@@ -378,9 +378,9 @@ const makePayment = catchAsync(async (req, res, next) => {
       );
     }
 
-    const newInstallmentRemaining = roundNumber(installment.amount - installment.paidAmount);
-
-
+    const newInstallmentRemaining = roundNumber(
+      installment.amount - installment.paidAmount
+    );
 
     const responseData = {
       loanRequestId: loanRequest._id,
@@ -402,7 +402,6 @@ const makePayment = catchAsync(async (req, res, next) => {
   }
 });
 
-
 const fetchAllLoans = catchAsync(async (req, res, next) => {
   const { userId } = req.params;
 
@@ -411,21 +410,28 @@ const fetchAllLoans = catchAsync(async (req, res, next) => {
     const allLoans = await LoanRequestModel.find({ userId });
 
     // Separate based on status
-    const pendingLoans = allLoans.filter(loan => loan.status === "pending");
+    const pendingLoans = allLoans.filter((loan) => loan.status === "pending");
     const activeOrCompletedLoans = allLoans.filter(
-      loan => loan.status === "approved" || loan.status === "completed"
+      (loan) => loan.status === "approved" || loan.status === "completed"
     );
+    const currentLoan =
+      allLoans.find(
+        (loan) => loan.status === "approved" && loan.remainingBalance > 0
+      ) || null;
 
-    return successHelper(res, {
-      pendingLoans,
-      activeOrCompletedLoans
-    }, "Loans fetched successfully");
-
+    return successHelper(
+      res,
+      {
+        pendingLoans,
+        currentLoan,
+        activeOrCompletedLoans,
+      },
+      "Loans fetched successfully"
+    );
   } catch (error) {
     next(error);
   }
 });
-
 
 export {
   requestLoan,
@@ -434,5 +440,5 @@ export {
   getLoanInstallment,
   makePayment,
   getUserHistory,
-  fetchAllLoans
+  fetchAllLoans,
 };

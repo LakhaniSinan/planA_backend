@@ -9,7 +9,7 @@ const userSchema = new mongoose.Schema(
     },
     fcm: {
       type: String,
-      default: ""
+      default: "",
     },
     password: { type: String, select: false },
     contactNumber: { type: String },
@@ -22,6 +22,7 @@ const userSchema = new mongoose.Schema(
     country: { type: String },
     state: { type: String },
     city: { type: String },
+    loginType: { type: String },
     postalCode: { type: String },
     governmentId: { type: String },
     profileCompleted: { type: Boolean, default: false },

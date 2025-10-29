@@ -540,7 +540,7 @@ const verifyGoogleToken = async (idToken) => {
 };
 
 const googleLogin = catchAsync(async (req, res) => {
-  const { idToken, fcmToken } = req.body;
+  const { idToken, fcm } = req.body;
 
   if (!idToken) {
     return errorHelper(res, null, "ID token is required", 400);
@@ -552,8 +552,8 @@ const googleLogin = catchAsync(async (req, res) => {
   let user = await User.findOne({ email });
 
   if (user) {
-    if (fcmToken && user.fcm !== fcmToken) {
-      user.fcm = fcmToken;
+    if (fcm && user.fcm !== fcm) {
+      user.fcm = fcm;
       await user.save();
     }
 
@@ -573,7 +573,7 @@ const googleLogin = catchAsync(async (req, res) => {
     email,
     name,
     image: picture || "",
-    fcm: fcmToken || "",
+    fcm: fcm|| "",
     profileCompleted: true,
     otpVerified: true,
     isEligible: false,
@@ -593,15 +593,15 @@ const googleLogin = catchAsync(async (req, res) => {
 });
 
 const updateFcmToken = catchAsync(async (req, res) => {
-  const { fcmToken } = req.body;
+  const { fcm } = req.body;
 
-  if (!fcmToken) {
+  if (!fcm) {
     return errorHelper(res, null, "FCM token is required", 400);
   }
 
   const user = await User.findByIdAndUpdate(
     req.user._id,
-    { fcm: fcmToken },
+    { fcm },
     { new: true }
   ).select("-password");
 

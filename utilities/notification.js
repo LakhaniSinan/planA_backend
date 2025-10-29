@@ -1,3 +1,5 @@
+import dotenv from "dotenv";
+dotenv.config();
 import admin from "./firebaseConfig.js";
 import { google } from "googleapis";
 import axios from "axios";

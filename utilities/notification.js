@@ -1,7 +1,8 @@
 import admin from "./firebaseConfig.js";
 import { google } from "googleapis";
 import axios from "axios";
-import serviceAccount from "../plan-a-9c87a-firebase-adminsdk-fbsvc-2d7611d41e.json" with { type: "json" };
+const serviceAccount = JSON.parse(process.env.FIREBASE_CONFIG);
+// import serviceAccount from "../plan-a-9c87a-firebase-adminsdk-fbsvc-2d7611d41e.json" with { type: "json" };
 
 const fcmUrl = "https://fcm.googleapis.com/v1/projects/plan-a-9c87a/messages:send";
 

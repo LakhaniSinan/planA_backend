@@ -11,7 +11,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
-    password: { type: String, select: false },
+    password: { type: String, select: false, default: null },
     contactNumber: { type: String },
     image: { type: String, default: "" },
     status: { type: Boolean, default: true },

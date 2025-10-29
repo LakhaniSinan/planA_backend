@@ -51,9 +51,11 @@ const registerUser = catchAsync(async (req, res) => {
   const otp = generateOtp();
   const hashedOtp = hashOtp(otp);
   const otpExpire = new Date(Date.now() + 10 * 60 * 1000);
+  console.log(req.body, "req.bodyreq.bodyreq.body");
 
   const user = await User.create({
     email,
+    fcm,
     password: hashedPassword,
     otp: hashedOtp,
     otpExpire,
@@ -552,6 +554,13 @@ const googleLogin = catchAsync(async (req, res) => {
   }
 
   // 🔹 Check if user already exists
+
+  let userData = await User.findOne({ email, password: null });
+
+  if (!userData) {
+    return errorHelper(res, null, "User already exists with normal email login", 400);
+  }
+
   let user = await User.findOne({ email });
 
   if (user) {

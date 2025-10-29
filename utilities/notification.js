@@ -11,7 +11,6 @@ async function getAccessToken() {
   return new Promise((resolve, reject) => {
     // Make sure the private key newlines are formatted correctly
     const privateKey = serviceAccount.private_key.replace(/\\n/g, "\n");
-    console.log(privateKey, serviceAccount.client_email, "privateKeyprivateKeyprivateKey");
 
     const jwtClient = new google.auth.JWT(
       serviceAccount.client_email,
@@ -27,30 +26,50 @@ async function getAccessToken() {
         reject(err);
         return;
       }
-      console.log("✅ Token generated successfully");
       resolve(tokens.access_token);
     });
   });
 }
 
 export const sendNotification = async (payload) => {
-  console.log(payload, "payloadpayloadpayloadpayload");
+  // Validate payload
+  if (!payload?.token || !payload?.title || !payload?.body) {
+    console.error("Invalid notification payload");
+    return { success: false, error: "Invalid payload" };
+  }
+
   try {
-    const token = await getAccessToken();
+    const accessToken = await getAccessToken();
     const headers = {
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
     };
 
-    const params = {
-      title: payload.title,
-      body: payload.body
-    }
-    console.log(payload, params, "paramsparamsparams");
+    // FCM v1 API format
+    const messagePayload = {
+      message: {
+        token: payload.token,
+        notification: {
+          title: payload.title,
+          body: payload.body
+        }
+      }
+    };
 
-    const response = await axios.post(payload.token, params, { headers });
-    console.log("✅ Notification sent successfully:", response.data);
+    const response = await axios.post(fcmUrl, messagePayload, { headers });
+    return { success: true, data: response.data };
   } catch (error) {
-    console.error("❌ Error sending notification:", error?.response?.data || error);
+    const errorData = error?.response?.data?.error;
+    const errorCode = errorData?.details?.[0]?.errorCode;
+    const errorMessage = errorData?.message || error.message;
+
+    // Handle specific FCM errors gracefully
+    if (errorCode === "UNREGISTERED" || errorCode === "INVALID_ARGUMENT") {
+      return { success: false, error: "Token unregistered", code: errorCode };
+    }
+
+    // For other errors, log and rethrow
+    console.error("Error sending notification:", errorMessage);
+    throw error;
   }
 };

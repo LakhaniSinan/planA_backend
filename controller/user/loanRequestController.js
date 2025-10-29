@@ -99,15 +99,19 @@ const requestLoan = catchAsync(async (req, res, next) => {
     type: "loan",
   });
 
-    console.log(user.fcm, "user.fcmuser.fcmuser.fcm");
-// if (user.fcm) {
-  
-    sendNotification({
-      token: "eNN7d9lLQb-vO9SS-ALsdG:APA91bE6TCCRc5JVaMld2kbCTHNYXsIZmyh5Y2r8foTBzbp_T-xqpeWjl-LZcL4Xf1AxyB5m0fkmN6pYImAv7hrqWQYr9WM3mZWs7gZJurUGzn-6W4nzzPs",
-      title: "Loan Request Submitted",
-      body: `Your loan request of ${validatedData.amount.toLocaleString()} has been successfully submitted.`,
-    });
-  
+  // Send push notification if user has FCM token
+  if (user.fcm) {
+    try {
+      await sendNotification({
+        token: user.fcm,
+        title: "Loan Request Submitted",
+        body: `Your loan request of ${validatedData.amount.toLocaleString()} has been successfully submitted.`,
+      });
+    } catch (error) {
+      // Log error but don't break the request flow
+      console.error("Failed to send push notification:", error?.response?.data?.error?.message || error.message);
+    }
+  }
 
   return successHelper(res, loanRequest, "Loan requested successfully");
 });
@@ -212,11 +216,20 @@ const updateLoanRequest = catchAsync(async (req, res, next) => {
       message: body,
       type: "loan",
     });
-    sendNotification({
-      token: user.fcm,
-      title,
-      body
-    });
+    
+    // Send push notification if user has FCM token
+    if (user.fcm) {
+      try {
+        await sendNotification({
+          token: user.fcm,
+          title,
+          body
+        });
+      } catch (error) {
+        // Log error but don't break the request flow
+        console.error("Failed to send push notification:", error?.response?.data?.error?.message || error.message);
+      }
+    }
   }
 
   if (oldStatus !== validatedData.status) {
@@ -259,17 +272,6 @@ const getLoanInstallment = catchAsync(async (req, res, next) => {
 });
 
 const makePayment = catchAsync(async (req, res, next) => {
-
-  const payload = {
-    message: {
-      token: "eNN7d9lLQb-vO9SS-ALsdG:APA91bE6TCCRc5JVaMld2kbCTHNYXsIZmyh5Y2r8foTBzbp_T-xqpeWjl-LZcL4Xf1AxyB5m0fkmN6pYImAv7hrqWQYr9WM3mZWs7gZJurUGzn-6W4nzzPs",
-      notification: {
-        title: "Loan Paid",
-        body: `Loan Paid`,
-      },
-    },
-  };
-  sendNotification(payload);
   const {
     loanRequestId,
     installmentId,

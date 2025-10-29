@@ -1,33 +1,30 @@
-import Joi from "joi";
-import { OAuth2Client } from 'google-auth-library';
-import User from "../../model/user/Model.js";
-import Interest from "../../model/loanManagement/intrestModel.js";
-import sendEmail from "../../utilities/email.js";
 import bcrypt from "bcryptjs";
+import { OAuth2Client } from "google-auth-library";
 import mongoose from "mongoose";
+import User from "../../model/user/Model.js";
 import catchAsync from "../../utilities/catchAsync.js";
+import sendEmail from "../../utilities/email.js";
 import {
-  verifyEmailSchema,
-  registerUserSchema,
-  verifyOtpSchema,
-  completeProfileSchema,
-  loginUserSchema,
-  resendOtpSchema,
-  forgotPasswordSchema,
-  resetPasswordSchema,
-  changePasswordSchema,
-  adminResetPasswordSchema,
-} from "../../utilities/validation.js";
-import {
-  successHelper,
   errorHelper,
-  hashPassword,
   generateToken,
+  hashPassword,
+  successHelper,
 } from "../../utilities/helpers.js";
 import { generateOtp, hashOtp } from "../../utilities/otp.js";
+import {
+  adminResetPasswordSchema,
+  changePasswordSchema,
+  completeProfileSchema,
+  forgotPasswordSchema,
+  loginUserSchema,
+  registerUserSchema,
+  resendOtpSchema,
+  resetPasswordSchema,
+  verifyOtpSchema,
+} from "../../utilities/validation.js";
 
 const registerUser = catchAsync(async (req, res) => {
-  const { email, password, fcm } = req.body;
+  const { email, password, fcm, loginType } = req.body;
 
   const { error } = registerUserSchema.validate({
     email,
@@ -64,6 +61,7 @@ const registerUser = catchAsync(async (req, res) => {
     otpVerified: false,
     isEligible: false,
     isRegistered: false,
+    loginType: loginType,
   });
 
   // } else {
@@ -209,7 +207,7 @@ const completeProfile = catchAsync(async (req, res) => {
 
 const loginUser = catchAsync(async (req, res) => {
   const { email, password, fcm } = req.body;
-  console.log(req.body,"req.bodyreq.bodyreq.body");
+  console.log(req.body, "req.bodyreq.bodyreq.body");
   const { error } = loginUserSchema.validate({ email, password });
   if (error) return errorHelper(res, null, error.details[0].message, 400);
 
@@ -538,28 +536,48 @@ const verifyGoogleToken = async (idToken) => {
     throw new Error(`Invalid ID token: ${error.message}`);
   }
 };
-
 const googleLogin = catchAsync(async (req, res) => {
-  const { idToken, fcmToken } = req.body;
+  const { idToken, fcm, loginType } = req.body;
 
   if (!idToken) {
     return errorHelper(res, null, "ID token is required", 400);
   }
 
+  // 🔹 Verify the Google token and extract payload info
   const payload = await verifyGoogleToken(idToken);
   const { email, name, picture } = payload;
 
+  if (!email) {
+    return errorHelper(res, null, "Invalid Google account data", 400);
+  }
+
+  // 🔹 Check if user already exists
   let user = await User.findOne({ email });
 
   if (user) {
-    if (fcmToken && user.fcm !== fcmToken) {
-      user.fcm = fcmToken;
+    // 🔹 Update FCM if provided
+    if (fcm && user.fcm !== fcm) {
+      user.fcm = fcm;
       await user.save();
     }
 
     const token = generateToken(user);
     const userResponse = user.toObject();
     delete userResponse.password;
+
+    // 🔹 Handle incomplete profile case
+    if (!user.profileCompleted) {
+      return successHelper(
+        res,
+        {
+          user: userResponse,
+          token,
+          nextStep: "complete_profile",
+        },
+        "Please complete your profile to continue",
+        200
+      );
+    }
 
     return successHelper(
       res,
@@ -569,15 +587,16 @@ const googleLogin = catchAsync(async (req, res) => {
     );
   }
 
+  // 🔹 If user doesn’t exist, create a new one
   const newUser = await User.create({
     email,
     name,
     image: picture || "",
-    fcm: fcmToken || "",
-    profileCompleted: true,
+    fcm: fcm || "",
+    profileCompleted: false,
     otpVerified: true,
     isEligible: false,
-    password: undefined,
+    loginType: loginType || "google",
   });
 
   const token = generateToken(newUser);
@@ -586,9 +605,13 @@ const googleLogin = catchAsync(async (req, res) => {
 
   return successHelper(
     res,
-    { user: userResponse, token, isNewUser: true },
-    "User created and logged in successfully",
-    201
+    {
+      user: userResponse,
+      token,
+      nextStep: "complete_profile",
+    },
+    "Please complete your profile to continue",
+    200
   );
 });
 
@@ -612,25 +635,23 @@ const updateFcmToken = catchAsync(async (req, res) => {
   return successHelper(res, { user }, "FCM token updated successfully", 200);
 });
 
-
 export {
-  registerUser,
-  verifyOtp,
-  completeProfile,
-  resendOtp,
-  loginUser,
-  updateUser,
-  forgotPassword,
-  resetPassword,
-  changePassword,
-  deleteUser,
-  getUsers,
-  getUsersById,
-  updateUserByAdmin,
   adminChangePassword,
   adminResetPassword,
-  sendRequestAndSupport,
+  changePassword,
+  completeProfile,
+  deleteUser,
+  forgotPassword,
+  getUsers,
+  getUsersById,
   googleLogin,
+  loginUser,
+  registerUser,
+  resendOtp,
+  resetPassword,
+  sendRequestAndSupport,
   updateFcmToken,
-
+  updateUser,
+  updateUserByAdmin,
+  verifyOtp,
 };

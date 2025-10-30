@@ -8,7 +8,7 @@ import app from "./app.js";
 // ROUTES (Adjust path if needed)
 import userRoutes from "./routes/user/authRoutes.js";
 
-const app = express();
+// const app = express();
 
 // ----------- Middlewares -------------
 app.use(express.json({ limit: "10mb" }));

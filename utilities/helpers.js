@@ -29,7 +29,7 @@ const generateToken = (user) => {
   return jwt.sign(
     { id: user._id }, // payload
     process.env.JWT_SECRET, // secret key
-    { expiresIn: "1d" } // expires in 1 day
+    { expiresIn: "1m" } // expires in 1 minute
   );
 };
 
@@ -44,11 +44,11 @@ function calculateDueDate(startDate, i, tenureType) {
   const date = new Date(startDate);
 
   if (tenureType === "months") {
-    date.setMonth(date.getMonth() + i); 
+    date.setMonth(date.getMonth() + i);
   } else if (tenureType === "years") {
-    date.setFullYear(date.getFullYear() + i); 
+    date.setFullYear(date.getFullYear() + i);
   } else if (tenureType === "days") {
-    date.setDate(date.getDate() + i); 
+    date.setDate(date.getDate() + i);
   }
 
   return date;
@@ -119,6 +119,6 @@ export {
   hashPassword,
   signToken,
   calculateDueDate,
-   roundNumber,
-   addLoanHistoryEntry
+  roundNumber,
+  addLoanHistoryEntry
 };

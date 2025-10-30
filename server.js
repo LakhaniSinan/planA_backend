@@ -1,17 +1,49 @@
 import dotenv from "dotenv";
 dotenv.config();
-import app from "./app.js";
-import mongoose from "mongoose";
-const PORT = 3000;
-const MONGO_URI = "mongodb+srv://test:OGo2M1GfEMRjIvJu@cluster0.p2khqnt.mongodb.net/loan-app?retryWrites=true&w=majority&appName=Cluster0"
 
-mongoose.connect(MONGO_URI)
-  .then(() => {
-    console.log(`MongoDB connected live ${MONGO_URI}`);
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`🚀 Server running at http://0.0.0.0:${PORT}`);
+import express from "express";
+import mongoose from "mongoose";
+import cors from "cors";
+
+// ROUTES (Adjust path if needed)
+import userRoutes from "./routes/user/authRoutes.js";
+
+const app = express();
+
+// ----------- Middlewares -------------
+app.use(express.json({ limit: "10mb" }));
+app.use(cors());
+
+// ----------- Mongo Connection --------
+async function connectDB() {
+  try {
+    await mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 15000,
     });
-  })
-  .catch((err) => {
-    console.error("❌ MongoDB connection error:", err);
-  });
+    console.log("✅ MongoDB Connected");
+  } catch (error) {
+    console.error("❌ MongoDB Connection Error:", error.message);
+    process.exit(1);
+  }
+}
+connectDB();
+
+// ----------- Routes ------------------
+app.get("/", (req, res) => {
+  res.send("✅ Server is running successfully.");
+});
+
+app.use("/api/user", userRoutes);
+
+// ----------- Server Port -------------
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
+});
+
+// ----------- Graceful Shutdown -------
+process.on("SIGTERM", () => {
+  console.log("🔻 Shutting server down...");
+  mongoose.connection.close();
+});

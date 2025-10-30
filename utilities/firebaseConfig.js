@@ -2,7 +2,7 @@ import admin from "firebase-admin";
 import fs from "fs";
 
 let serviceAccount;
-console.log(process.env.GOOGLE_CLIENT_ID,"HERE_U_GO")
+console.log(process.env.FIREBASE_CONFIG,"HERE_U_GO")
 if (process.env.FIREBASE_CONFIG) {
   const json = Buffer.from(process.env.FIREBASE_CONFIG, "base64").toString("utf8");
   serviceAccount = JSON.parse(json);

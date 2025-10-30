@@ -1,21 +1,23 @@
 import dotenv from "dotenv";
 dotenv.config();
 import admin from "firebase-admin";
-import fs from "fs";
 
 let serviceAccount;
 
+// If running on HEROKU (using BASE64 config)
 if (process.env.FIREBASE_CONFIG) {
-  // ✅ USE RAW JSON DIRECTLY (NO BASE64 DECODE)
-  serviceAccount = JSON.parse(process.env.FIREBASE_CONFIG);
-} else {
-  // ✅ LOCAL DEV fallback
   serviceAccount = JSON.parse(
-    fs.readFileSync("./firebase-service-account.json", "utf8")
+    Buffer.from(process.env.FIREBASE_CONFIG, "base64").toString("utf8")
   );
 }
+// If running locally (using JSON file)
+else {
+  serviceAccount = await import("../firebase-service-account.json", {
+    assert: { type: "json" },
+  }).then((m) => m.default);
+}
 
-// ✅ Initialize only once
+// Initialize Firebase only once
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),

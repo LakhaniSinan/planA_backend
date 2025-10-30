@@ -14,10 +14,10 @@ const router = express.Router();
 
 router.post("/register", registerAdmin);
 router.post("/login", loginAdmin);
-router.put("/change-password", verifyAdmin, changePassword);
+router.put("/change-password", changePassword);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
-router.get("/get/details", verifyAdmin, getAdminDetails);
-router.put("/update/details", verifyAdmin, updateAdminDetails);
+router.get("/get/details", getAdminDetails);
+router.put("/update/details", updateAdminDetails);
 
 export default router;

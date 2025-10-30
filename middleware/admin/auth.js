@@ -10,13 +10,15 @@ const verifyAdmin = async (req, res, next) => {
   }
 
   const token = authHeader.split(" ")[1];
-
+  console.log(token,"tokentokentoken");
+  
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // Find admin by id, exclude password field for security
     const admin = await Admin.findById(decoded.id).select("-password");
-
+    console.log(admin,"ADMINASDSD");
+    
     if (!admin) {
       return errorHelper(res, null, "Unauthorized: Admin not found", 401);
     }

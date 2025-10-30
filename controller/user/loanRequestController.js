@@ -15,7 +15,7 @@ import {
 } from "../../utilities/validation.js";
 import { schemaValidator } from "../../middleware/schemaMiddleware.js";
 import mongoose from "mongoose";
-import { sendNotification } from "../../utilities/notification.js";
+// import { sendNotification } from "../../utilities/notification.js";
 import NotificationModel from "../../model/user/notificationModel.js";
 
 const requestLoan = catchAsync(async (req, res, next) => {
@@ -100,11 +100,11 @@ const requestLoan = catchAsync(async (req, res, next) => {
   // Send push notification if user has FCM token
   if (user.fcm) {
     try {
-      await sendNotification({
-        token: user.fcm,
-        title: "Loan Request Submitted",
-        body: `Your loan request of ${validatedData.amount.toLocaleString()} has been successfully submitted.`,
-      });
+      // await sendNotification({
+      //   token: user.fcm,
+      //   title: "Loan Request Submitted",
+      //   body: `Your loan request of ${validatedData.amount.toLocaleString()} has been successfully submitted.`,
+      // });
     } catch (error) {
       // Log error but don't break the request flow
       console.error(
@@ -215,21 +215,21 @@ const updateLoanRequest = catchAsync(async (req, res, next) => {
     });
 
     // Send push notification if user has FCM token
-    if (user.fcm) {
-      try {
-        await sendNotification({
-          token: user.fcm,
-          title,
-          body,
-        });
-      } catch (error) {
-        // Log error but don't break the request flow
-        console.error(
-          "Failed to send push notification:",
-          error?.response?.data?.error?.message || error.message
-        );
-      }
-    }
+    // if (user.fcm) {
+    //   try {
+    //     await sendNotification({
+    //       token: user.fcm,
+    //       title,
+    //       body,
+    //     });
+    //   } catch (error) {
+    //     // Log error but don't break the request flow
+    //     console.error(
+    //       "Failed to send push notification:",
+    //       error?.response?.data?.error?.message || error.message
+    //     );
+    //   }
+    // }
   }
 
   if (oldStatus !== validatedData.status) {

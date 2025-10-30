@@ -1,26 +1,27 @@
 import dotenv from "dotenv";
 dotenv.config();
 import admin from "firebase-admin";
-import fs from "fs"; // <-- ADD THIS
+import fs from "fs";
 
 let serviceAccount;
 
 if (process.env.FIREBASE_CONFIG) {
-  // Decode Base64 JSON (Heroku)
   const decoded = Buffer.from(process.env.FIREBASE_CONFIG, "base64").toString("utf8");
   serviceAccount = JSON.parse(decoded);
 } else {
-  // Local development fallback
-  serviceAccount = JSON.parse(
-    fs.readFileSync(process.env.FIREBASE_CONFIG_PATH || "./firebase-service-account.json", "utf8")
-  );
+  const filePath = process.env.FIREBASE_CONFIG_PATH || "./firebase-service-account.json";
+
+  if (!fs.existsSync(filePath)) {
+    console.error("❌ Service account file not found:", filePath);
+    throw new Error("Service account JSON missing locally.");
+  }
+
+  serviceAccount = JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
 
-// Avoid re-initialization when using nodemon or Next.js hot reload
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
-}
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
 
+export { serviceAccount };
 export default admin;

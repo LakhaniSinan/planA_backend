@@ -28,8 +28,8 @@ const errorHelper = (res, error, message, status = 400) => {
 const generateToken = (user) => {
   return jwt.sign(
     { id: user._id }, // payload
-    process.env.JWT_SECRET, // secret key
-    { expiresIn: "1m" } // expires in 1 minute
+    process.env.JWT_SECRET // secret key
+    // no expiresIn option
   );
 };
 

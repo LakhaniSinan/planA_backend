@@ -1,22 +1,20 @@
 import dotenv from "dotenv";
 dotenv.config();
 import admin from "firebase-admin";
-import fs from "fs";
 
-let firebaseConfig;
-  console.log(process.env.FIREBASE_CONFIG,"process.env.FIREBASE_CONFIG");
-  
+let serviceAccount;
+
 if (process.env.FIREBASE_CONFIG) {
-  // Heroku production
-  firebaseConfig = JSON.parse(process.env.FIREBASE_CONFIG);
+  const decoded = Buffer.from(process.env.FIREBASE_CONFIG, "base64").toString("utf8");
+  serviceAccount = JSON.parse(decoded);
 } else {
-  // Local dev
-  const path = process.env.FIREBASE_CONFIG_PATH || './firebase-service-account.json';
-  firebaseConfig = JSON.parse(fs.readFileSync(path, 'utf-8'));
+  serviceAccount = JSON.parse(
+    fs.readFileSync(process.env.FIREBASE_CONFIG_PATH || "./firebase-service-account.json", "utf8")
+  );
 }
 
 admin.initializeApp({
-  credential: admin.credential.cert(firebaseConfig),
+  credential: admin.credential.cert(serviceAccount),
 });
 
 export default admin;

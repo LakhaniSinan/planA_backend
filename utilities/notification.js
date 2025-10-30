@@ -5,24 +5,14 @@ import { google } from "googleapis";
 import axios from "axios";
 import fs from "fs";
 
-let serviceAccount;
-
-// If running on Heroku (FIREBASE_CONFIG is set)
-if (process.env.FIREBASE_CONFIG) {
-  serviceAccount = JSON.parse(process.env.FIREBASE_CONFIG);
-} else {
-  // Local environment
-  const path = process.env.FIREBASE_CONFIG_PATH || "./firebase-service-account.json";
-  serviceAccount = JSON.parse(fs.readFileSync(path, "utf-8"));
-}
-
+const serviceAccount = admin.credential.cert().toJSON();
 const fcmUrl = "https://fcm.googleapis.com/v1/projects/plan-a-9c87a/messages:send";
 const SCOPES = ["https://www.googleapis.com/auth/firebase.messaging"];
 
 async function getAccessToken() {
   return new Promise((resolve, reject) => {
     // Ensure private key formatting
-    const privateKey = serviceAccount.private_key.replace(/\\n/g, "\n");
+ const privateKey = serviceAccount.private_key;
 
     const jwtClient = new google.auth.JWT(
       serviceAccount.client_email,

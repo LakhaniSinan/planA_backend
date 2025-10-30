@@ -51,6 +51,7 @@ export const sendNotification = async (payload) => {
         },
       }
     );
+console.log(response.data ,"response.data response.data ");
 
     return { success: true, data: response.data };
 
